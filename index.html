@@ -1,149 +1,200 @@
-
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หอพักดำรงรักษ์ - ระบบจัดการ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary)}
-.app{max-width:900px;margin:0 auto;padding:1rem}
-.nav{display:flex;gap:8px;margin-bottom:1.5rem;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:6px}
-.nav button{flex:1;padding:8px 12px;border:none;border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);font-size:14px;cursor:pointer;transition:all 0.15s}
-.nav button.active{background:var(--color-background-secondary);color:var(--color-text-primary);font-weight:500}
+body{font-family:'Sarabun',system-ui,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:15px;line-height:1.6}
+.app{max-width:980px;margin:0 auto;padding:1.25rem}
+
+/* Header */
+.header{background:#1a1a2e;border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-size:18px;font-weight:600;color:#fff}
+.header-sub{font-size:13px;color:#8888aa;margin-top:2px}
+.header-badge{background:#2d2d4e;color:#a0a8ff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500}
+
+/* Nav */
+.nav{background:#fff;border-radius:12px;padding:6px;margin-bottom:1.25rem;display:flex;gap:4px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.nav button{flex:1;padding:9px 10px;border:none;border-radius:9px;background:transparent;color:#666;font-size:13px;font-family:'Sarabun',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.18s;font-weight:500}
+.nav button:hover{background:#f5f5ff;color:#1a1a2e}
+.nav button.active{background:#1a1a2e;color:#fff;box-shadow:0 2px 8px rgba(26,26,46,0.3)}
+
+/* Tabs */
 .tab{display:none}.tab.active{display:block}
-.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
-.card-title{font-size:15px;font-weight:500;margin-bottom:1rem;color:var(--color-text-primary)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
-.metric-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:4px}
-.metric-value{font-size:22px;font-weight:500}
-.form-group{margin-bottom:12px}
-.form-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:4px;display:block}
-input,select{width:100%;padding:8px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-size:14px}
-input:focus,select:focus{outline:none;border-color:var(--color-border-primary)}
-.btn{padding:9px 20px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-primary);font-size:14px;cursor:pointer;transition:all 0.15s}
-.btn:hover{background:var(--color-background-secondary)}
-.btn-primary{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
-.btn-primary:hover{opacity:0.85}
-.btn-sm{padding:5px 12px;font-size:13px}
-.badge{display:inline-block;padding:3px 10px;border-radius:var(--border-radius-md);font-size:12px;font-weight:500}
-.badge-green{background:#EAF3DE;color:#3B6D11}
-.badge-red{background:#FCEBEB;color:#A32D2D}
-.badge-amber{background:#FAEEDA;color:#854F0B}
-.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
-.room-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;text-align:center;cursor:pointer;transition:all 0.15s}
-.room-card:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
-.room-card.occupied{border-color:#9FE1CB;background:#E1F5EE}
-.room-card.vacant{border-color:#C0DD97;background:#EAF3DE}
-.room-num{font-size:18px;font-weight:500;margin-bottom:4px}
-.room-tenant{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Cards */
+.card{background:#fff;border-radius:14px;padding:1.5rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.card-title{font-size:15px;font-weight:600;margin-bottom:1.25rem;color:#1a1a2e}
+
+/* Metrics */
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.25rem}
+.metric{background:#fff;border-radius:12px;padding:1.1rem 1.25rem;box-shadow:0 1px 3px rgba(0,0,0,0.06);border-left:3px solid #e0e0f0}
+.metric.green{border-left-color:#22c55e}
+.metric.blue{border-left-color:#3b82f6}
+.metric.purple{border-left-color:#8b5cf6}
+.metric-label{font-size:12px;color:#888;margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+.metric-value{font-size:26px;font-weight:600;color:#1a1a2e}
+
+/* Grid layouts */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* Form */
+label{font-size:13px;color:#555;margin-bottom:5px;display:block;font-weight:500}
+input,select{width:100%;padding:10px 14px;border:1.5px solid #e8e8f0;border-radius:9px;background:#fff;color:#1a1a2e;font-size:14px;font-family:'Sarabun',sans-serif;margin-bottom:12px;transition:border 0.15s}
+input:focus,select:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 3px rgba(26,26,46,0.08)}
+input[readonly]{background:#f8f8fc;color:#888;border-color:#eee}
+
+/* Buttons */
+.btn{padding:10px 20px;border:1.5px solid #ddd;border-radius:9px;background:#fff;color:#1a1a2e;font-size:14px;font-family:'Sarabun',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all 0.18s;font-weight:500}
+.btn:hover{background:#f5f5ff;border-color:#c0c0dd;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#1a1a2e;color:#fff;border-color:#1a1a2e;box-shadow:0 2px 8px rgba(26,26,46,0.25)}
+.btn-primary:hover{background:#2d2d4e;border-color:#2d2d4e;box-shadow:0 4px 12px rgba(26,26,46,0.3)}
+.btn-green{background:#16a34a;color:#fff;border-color:#16a34a;box-shadow:0 2px 8px rgba(22,163,74,0.25)}
+.btn-green:hover{background:#15803d;border-color:#15803d}
+.btn-sm{padding:6px 12px;font-size:13px}
+.btn-danger{color:#dc2626;border-color:#fca5a5}
+.btn-danger:hover{background:#fef2f2;border-color:#dc2626}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-green{background:#dcfce7;color:#16a34a}
+.badge-amber{background:#fef9c3;color:#ca8a04;cursor:pointer}
+.badge-paid{background:#dcfce7;color:#16a34a;cursor:pointer}
+
+/* Room grid */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.room-card{border:2px solid #e8e8f0;border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;transition:all 0.18s;background:#fff;position:relative}
+.room-card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,0.1);border-color:#a0a8ff}
+.room-card.occupied{border-color:#86efac;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
+.room-card.vacant{border-color:#bbf7d0;background:#f0fdf4}
+.room-num{font-size:22px;font-weight:700;margin-bottom:5px;color:#1a1a2e}
+.room-status{font-size:11px;color:#888;font-weight:500}
+.room-card.occupied .room-num{color:#15803d}
+
+/* Table */
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;padding:8px 12px;border-bottom:0.5px solid var(--color-border-tertiary);font-weight:500;color:var(--color-text-secondary);font-size:13px}
-td{padding:8px 12px;border-bottom:0.5px solid var(--color-border-tertiary)}
-tr:last-child td{border-bottom:none}
-.total-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem;margin-top:1rem}
-.total-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
-.total-row.final{font-weight:500;font-size:16px;border-top:0.5px solid var(--color-border-tertiary);margin-top:8px;padding-top:12px}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+th{text-align:left;padding:10px 14px;border-bottom:2px solid #f0f0f8;font-weight:600;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:10px 14px;border-bottom:1px solid #f5f5fa}
+tr:hover td{background:#fafafe}
+.empty-state{text-align:center;color:#bbb;padding:3rem;font-size:14px}
+
+/* Total box */
+.total-box{background:#f8f8fc;border-radius:12px;padding:1.25rem;border:1.5px solid #e8e8f0}
+.total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;color:#555}
+.total-row.final{font-weight:700;font-size:18px;border-top:2px solid #e8e8f0;margin-top:10px;padding-top:14px;color:#1a1a2e}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(2px)}
 .modal-bg.open{display:flex}
-.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:16px;font-weight:500;margin-bottom:1rem}
+.modal{background:#fff;border-radius:16px;padding:1.75rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-title{font-size:17px;font-weight:600;margin-bottom:1.25rem;color:#1a1a2e}
+
+/* Misc */
 .flex-between{display:flex;justify-content:space-between;align-items:center}
-.text-muted{color:var(--color-text-secondary);font-size:13px}
-.divider{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:1rem 0}
-.alert{padding:10px 14px;border-radius:var(--border-radius-md);font-size:14px;margin-bottom:1rem}
-.alert-success{background:#E1F5EE;color:#0F6E56}
-.alert-danger{background:#FCEBEB;color:#A32D2D}
+.divider{border:none;border-top:1.5px solid #f0f0f8;margin:1rem 0}
+.alert{padding:11px 14px;border-radius:9px;font-size:13px;margin-bottom:0.75rem;font-weight:500}
+.alert-success{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+.alert-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+.alert-info{background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd}
+
+@media(max-width:640px){
+  .grid2{grid-template-columns:1fr}
+  .grid4{grid-template-columns:1fr 1fr}
+  .nav button span{display:none}
+  .nav button{padding:10px}
+}
 </style>
-
-<h2 class="sr-only">ระบบจัดการหอพักดำรงรักษ์</h2>
-
+</head>
+<body>
 <div class="app">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+
+  <div class="header">
     <div>
-      <div style="font-size:18px;font-weight:500">หอพักดำรงรักษ์</div>
-      <div class="text-muted">ระบบจัดการห้องพัก 13 ห้อง</div>
+      <div class="header-title">🏠 หอพักดำรงรักษ์</div>
+      <div class="header-sub">ระบบจัดการห้องพัก — ห้อง 12 ถึง 24</div>
     </div>
-    <div id="alert-area"></div>
+    <div class="header-badge">13 ห้อง</div>
   </div>
 
-  <div class="nav">
-    <button class="active" onclick="switchTab('rooms')"><i class="ti ti-home" aria-hidden="true"></i> ภาพรวม</button>
-    <button onclick="switchTab('billing')"><i class="ti ti-calculator" aria-hidden="true"></i> คำนวณค่าเช่า</button>
-    <button onclick="switchTab('tenants')"><i class="ti ti-users" aria-hidden="true"></i> ผู้เช่า</button>
-    <button onclick="switchTab('history')"><i class="ti ti-history" aria-hidden="true"></i> ประวัติ</button>
-    <button onclick="switchTab('settings')"><i class="ti ti-settings" aria-hidden="true"></i> ตั้งค่า</button>
-  </div>
+  <nav class="nav">
+    <button class="active" onclick="switchTab('rooms',this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>ภาพรวม</span>
+    </button>
+    <button onclick="switchTab('billing',this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span>คำนวณค่าเช่า</span>
+    </button>
+    <button onclick="switchTab('tenants',this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>ผู้เช่า</span>
+    </button>
+    <button onclick="switchTab('history',this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>ประวัติ</span>
+    </button>
+    <button onclick="switchTab('settings',this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+      <span>ตั้งค่า</span>
+    </button>
+  </nav>
 
+  <div id="alert-area" style="margin-bottom:0.75rem"></div>
+
+  <!-- ภาพรวม -->
   <div id="tab-rooms" class="tab active">
-    <div class="grid4" style="margin-bottom:1rem">
-      <div class="metric"><div class="metric-label">ห้องทั้งหมด</div><div class="metric-value" id="m-total">13</div></div>
-      <div class="metric"><div class="metric-label">มีผู้เช่า</div><div class="metric-value" id="m-occupied" style="color:#0F6E56">0</div></div>
-      <div class="metric"><div class="metric-label">ห้องว่าง</div><div class="metric-value" id="m-vacant" style="color:#3B6D11">13</div></div>
-      <div class="metric"><div class="metric-label">รายรับเดือนนี้</div><div class="metric-value" id="m-income">฿0</div></div>
+    <div class="grid4">
+      <div class="metric"><div class="metric-label">ห้องทั้งหมด</div><div class="metric-value">13</div></div>
+      <div class="metric green"><div class="metric-label">มีผู้เช่า</div><div class="metric-value" id="m-occupied" style="color:#16a34a">0</div></div>
+      <div class="metric blue"><div class="metric-label">ห้องว่าง</div><div class="metric-value" id="m-vacant" style="color:#3b82f6">13</div></div>
+      <div class="metric purple"><div class="metric-label">รายรับเดือนนี้</div><div class="metric-value" id="m-income" style="font-size:20px;color:#8b5cf6">฿0</div></div>
     </div>
     <div class="card">
-      <div class="flex-between" style="margin-bottom:1rem">
+      <div class="flex-between" style="margin-bottom:1.25rem">
         <div class="card-title" style="margin:0">สถานะห้องพัก</div>
-        <div style="display:flex;gap:8px;font-size:12px">
-          <span style="background:#E1F5EE;color:#0F6E56;padding:3px 10px;border-radius:var(--border-radius-md)">มีผู้เช่า</span>
-          <span style="background:#EAF3DE;color:#3B6D11;padding:3px 10px;border-radius:var(--border-radius-md)">ว่าง</span>
+        <div style="display:flex;gap:8px">
+          <span class="badge badge-green">● มีผู้เช่า</span>
+          <span style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">○ ว่าง</span>
         </div>
       </div>
       <div class="room-grid" id="room-grid"></div>
     </div>
   </div>
 
+  <!-- คำนวณค่าเช่า -->
   <div id="tab-billing" class="tab">
     <div class="grid2">
       <div class="card">
         <div class="card-title">คำนวณค่าเช่าประจำเดือน</div>
-        <div class="form-group">
-          <label class="form-label">เลือกห้อง</label>
-          <select id="bill-room" onchange="loadTenantForBilling()">
-            <option value="">-- เลือกห้อง --</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">ผู้เช่า</label>
-          <input type="text" id="bill-tenant" placeholder="ชื่อผู้เช่า" readonly style="background:var(--color-background-secondary)">
-        </div>
-        <div class="form-group">
-          <label class="form-label">เดือน/ปี</label>
-          <input type="month" id="bill-month">
-        </div>
+        <label>เลือกห้อง</label>
+        <select id="bill-room" onchange="loadTenantForBilling()">
+          <option value="">-- เลือกห้อง --</option>
+        </select>
+        <label>ผู้เช่า</label>
+        <input type="text" id="bill-tenant" placeholder="ชื่อผู้เช่า" readonly>
+        <label>เดือน/ปี</label>
+        <input type="month" id="bill-month">
         <hr class="divider">
-        <div class="form-group">
-          <label class="form-label">ค่าห้อง (บาท)</label>
-          <input type="number" id="bill-rent" placeholder="0">
+        <label>ค่าห้อง (บาท)</label>
+        <input type="number" id="bill-rent" placeholder="0" oninput="calcBill()">
+        <div class="grid2">
+          <div><label>มิเตอร์น้ำเก่า</label><input type="number" id="water-old" placeholder="0" oninput="calcBill()"></div>
+          <div><label>มิเตอร์น้ำใหม่</label><input type="number" id="water-new" placeholder="0" oninput="calcBill()"></div>
         </div>
         <div class="grid2">
-          <div class="form-group">
-            <label class="form-label">มิเตอร์น้ำเก่า</label>
-            <input type="number" id="water-old" placeholder="0" oninput="calcBill()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">มิเตอร์น้ำใหม่</label>
-            <input type="number" id="water-new" placeholder="0" oninput="calcBill()">
-          </div>
+          <div><label>มิเตอร์ไฟเก่า</label><input type="number" id="elec-old" placeholder="0" oninput="calcBill()"></div>
+          <div><label>มิเตอร์ไฟใหม่</label><input type="number" id="elec-new" placeholder="0" oninput="calcBill()"></div>
         </div>
-        <div class="grid2">
-          <div class="form-group">
-            <label class="form-label">มิเตอร์ไฟเก่า</label>
-            <input type="number" id="elec-old" placeholder="0" oninput="calcBill()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">มิเตอร์ไฟใหม่</label>
-            <input type="number" id="elec-new" placeholder="0" oninput="calcBill()">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">ค่าอื่นๆ เช่น อินเทอร์เน็ต (บาท)</label>
-          <input type="number" id="bill-other" placeholder="0" oninput="calcBill()">
-        </div>
-        <div class="form-group">
-          <label class="form-label">หมายเหตุ</label>
-          <input type="text" id="bill-note" placeholder="ถ้ามี">
-        </div>
+        <label>ค่าอื่นๆ เช่น อินเทอร์เน็ต (บาท)</label>
+        <input type="number" id="bill-other" placeholder="0" oninput="calcBill()">
+        <label>หมายเหตุ</label>
+        <input type="text" id="bill-note" placeholder="ถ้ามี">
       </div>
       <div class="card">
         <div class="card-title">สรุปค่าเช่า</div>
@@ -152,380 +203,304 @@ tr:last-child td{border-bottom:none}
           <div class="total-row"><span>ค่าน้ำ (<span id="water-units">0</span> หน่วย × <span id="water-rate-show">5</span>฿)</span><span id="sum-water">฿0</span></div>
           <div class="total-row"><span>ค่าไฟ (<span id="elec-units">0</span> หน่วย × <span id="elec-rate-show">8</span>฿)</span><span id="sum-elec">฿0</span></div>
           <div class="total-row"><span>ค่าอื่นๆ</span><span id="sum-other">฿0</span></div>
-          <div class="total-row final"><span>รวมทั้งหมด</span><span id="sum-total">฿0</span></div>
+          <div class="total-row final"><span>รวมทั้งหมด</span><span id="sum-total" style="color:#8b5cf6">฿0</span></div>
         </div>
-        <div style="margin-top:1rem;display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-primary" onclick="saveBill()"><i class="ti ti-device-floppy" aria-hidden="true"></i> บันทึกและแจ้งยอด</button>
-          <button class="btn" onclick="printBill()"><i class="ti ti-printer" aria-hidden="true"></i> พิมพ์ใบแจ้งหนี้</button>
+        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" onclick="saveBill()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            บันทึกค่าเช่า
+          </button>
+          <button class="btn" onclick="printBill()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            พิมพ์ใบแจ้งหนี้
+          </button>
         </div>
+        <div id="bill-alert" style="margin-top:1rem"></div>
       </div>
     </div>
   </div>
 
+  <!-- ผู้เช่า -->
   <div id="tab-tenants" class="tab">
     <div class="card">
-      <div class="flex-between" style="margin-bottom:1rem">
+      <div class="flex-between" style="margin-bottom:1.25rem">
         <div class="card-title" style="margin:0">รายชื่อผู้เช่า</div>
-        <button class="btn btn-primary btn-sm" onclick="openAddTenant()"><i class="ti ti-plus" aria-hidden="true"></i> เพิ่มผู้เช่า</button>
+        <button class="btn btn-green btn-sm" onclick="openAddTenant()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          เพิ่มผู้เช่า
+        </button>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ห้อง</th><th>ชื่อ</th><th>เบอร์โทร</th><th>วันที่เข้าอยู่</th><th>ค่าห้อง/เดือน</th><th>สถานะ</th><th></th></tr></thead>
-          <tbody id="tenant-table"></tbody>
+          <thead><tr><th>ห้อง</th><th>ชื่อ-นามสกุล</th><th>เบอร์โทร</th><th>วันเข้าอยู่</th><th>ค่าห้อง/เดือน</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="tenant-table"><tr><td colspan="7" class="empty-state">ยังไม่มีผู้เช่า — กดปุ่มเพิ่มผู้เช่าเพื่อเริ่มต้น</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
 
+  <!-- ประวัติ -->
   <div id="tab-history" class="tab">
     <div class="card">
-      <div class="flex-between" style="margin-bottom:1rem">
+      <div class="flex-between" style="margin-bottom:1.25rem">
         <div class="card-title" style="margin:0">ประวัติการชำระเงิน</div>
-        <select id="filter-room" onchange="renderHistory()" style="width:auto;padding:6px 12px">
+        <select id="filter-room" onchange="renderHistory()" style="width:auto;margin:0;padding:8px 12px">
           <option value="">ทุกห้อง</option>
         </select>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>ห้อง</th><th>ผู้เช่า</th><th>เดือน</th><th>ค่าห้อง</th><th>ค่าน้ำ</th><th>ค่าไฟ</th><th>ค่าอื่นๆ</th><th>รวม</th><th>สถานะ</th></tr></thead>
-          <tbody id="history-table"></tbody>
+          <tbody id="history-table"><tr><td colspan="9" class="empty-state">ยังไม่มีประวัติการชำระเงิน</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
 
+  <!-- ตั้งค่า -->
   <div id="tab-settings" class="tab">
     <div class="card">
       <div class="card-title">ตั้งค่าอัตราค่าน้ำ-ค่าไฟ</div>
       <div class="grid2">
-        <div class="form-group">
-          <label class="form-label">ค่าน้ำต่อหน่วย (บาท)</label>
-          <input type="number" id="set-water" value="5" min="1">
-        </div>
-        <div class="form-group">
-          <label class="form-label">ค่าไฟต่อหน่วย (บาท)</label>
-          <input type="number" id="set-elec" value="8" min="1">
-        </div>
+        <div><label>ค่าน้ำต่อหน่วย (บาท)</label><input type="number" id="set-water" value="5" min="1"></div>
+        <div><label>ค่าไฟต่อหน่วย (บาท)</label><input type="number" id="set-elec" value="8" min="1"></div>
       </div>
-      <button class="btn btn-primary" onclick="saveSettings()"><i class="ti ti-check" aria-hidden="true"></i> บันทึกการตั้งค่า</button>
+      <button class="btn btn-primary" onclick="saveSettings()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        บันทึกการตั้งค่า
+      </button>
+      <div id="settings-alert" style="margin-top:1rem"></div>
     </div>
     <div class="card">
       <div class="card-title">เชื่อมต่อ Google Sheet</div>
-      <div class="alert alert-amber" style="background:#FAEEDA;color:#854F0B">ฟีเจอร์นี้จะพร้อมใช้งานเมื่อตั้งค่า Google Service Account เสร็จครับ</div>
-      <div class="form-group">
-        <label class="form-label">Spreadsheet ID (สำหรับบันทึกข้อมูลผู้เช่าและประวัติ)</label>
-        <input type="text" id="set-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
-      </div>
-      <button class="btn" disabled><i class="ti ti-plug" aria-hidden="true"></i> เชื่อมต่อ (ยังไม่พร้อม)</button>
+      <div class="alert alert-info">ฟีเจอร์นี้จะพร้อมใช้งานเมื่อตั้งค่า Google Service Account เสร็จครับ</div>
+      <label>Spreadsheet ID</label>
+      <input type="text" id="set-sheet-id" placeholder="วาง Spreadsheet ID ที่นี่">
+      <button class="btn" disabled style="opacity:0.5;cursor:not-allowed">เชื่อมต่อ (ยังไม่พร้อม)</button>
     </div>
   </div>
 </div>
 
-<div class="modal-bg" id="modal-tenant">
+<!-- Modal ผู้เช่า -->
+<div class="modal-bg" id="modal-tenant" onclick="closeModalBg(event,'modal-tenant')">
   <div class="modal">
     <div class="modal-title" id="modal-tenant-title">เพิ่มผู้เช่าใหม่</div>
-    <div class="form-group">
-      <label class="form-label">ห้อง</label>
-      <select id="t-room">
-        <option value="">-- เลือกห้อง --</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">ชื่อ-นามสกุล</label>
-      <input type="text" id="t-name" placeholder="สมชาย ใจดี">
-    </div>
-    <div class="form-group">
-      <label class="form-label">เบอร์โทร</label>
-      <input type="text" id="t-phone" placeholder="080-xxx-xxxx">
-    </div>
-    <div class="form-group">
-      <label class="form-label">วันที่เข้าอยู่</label>
-      <input type="date" id="t-date">
-    </div>
-    <div class="form-group">
-      <label class="form-label">ค่าห้องต่อเดือน (บาท)</label>
-      <input type="number" id="t-rent" placeholder="1500">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:1rem">
+    <label>ห้อง</label>
+    <select id="t-room"></select>
+    <label>ชื่อ-นามสกุล</label>
+    <input type="text" id="t-name" placeholder="สมชาย ใจดี">
+    <label>เบอร์โทร</label>
+    <input type="text" id="t-phone" placeholder="080-xxx-xxxx">
+    <label>วันที่เข้าอยู่</label>
+    <input type="date" id="t-date">
+    <label>ค่าห้องต่อเดือน (บาท)</label>
+    <input type="number" id="t-rent" placeholder="1500">
+    <div style="display:flex;gap:8px;margin-top:0.5rem">
       <button class="btn btn-primary" style="flex:1" onclick="saveTenant()">บันทึก</button>
       <button class="btn" onclick="closeModal('modal-tenant')">ยกเลิก</button>
     </div>
+    <div id="tenant-alert" style="margin-top:0.75rem"></div>
   </div>
 </div>
 
 <script>
-const ROOMS = [12,13,14,15,16,17,18,19,20,21,22,23,24];
-let tenants = {};
-let bills = [];
-let settings = {waterRate:5, elecRate:8};
-let editingRoom = null;
+const ROOMS=[12,13,14,15,16,17,18,19,20,21,22,23,24];
+let tenants={},bills=[],settings={waterRate:5,elecRate:8},editingRoom=null;
 
 function init(){
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth()+1).padStart(2,'0');
-  document.getElementById('bill-month').value = y+'-'+m;
-  renderRooms();
-  renderBillRoomSelect();
-  renderTenants();
-  renderHistory();
-  updateMetrics();
+  const now=new Date();
+  document.getElementById('bill-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  renderRooms();renderBillRoomSelect();renderTenantTable();renderHistory();updateMetrics();
 }
 
-function switchTab(name){
+function switchTab(name,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  event.currentTarget.classList.add('active');
-  if(name==='billing') renderBillRoomSelect();
-  if(name==='history') renderHistory();
+  btn.classList.add('active');
+  if(name==='billing')renderBillRoomSelect();
+  if(name==='history')renderHistory();
 }
 
 function renderRooms(){
-  const grid = document.getElementById('room-grid');
-  grid.innerHTML = ROOMS.map(r=>{
-    const t = tenants[r];
-    const cls = t ? 'occupied' : 'vacant';
-    const label = t ? t.name.split(' ')[0] : 'ว่าง';
-    return `<div class="room-card ${cls}" onclick="roomClick(${r})">
+  document.getElementById('room-grid').innerHTML=ROOMS.map(r=>{
+    const t=tenants[r];
+    return`<div class="room-card ${t?'occupied':'vacant'}" onclick="roomClick(${r})" title="${t?t.name:'กดเพื่อเพิ่มผู้เช่า'}">
       <div class="room-num">${r}</div>
-      <div class="room-tenant">${label}</div>
+      <div class="room-status">${t?t.name.split(' ')[0]:'ว่าง'}</div>
     </div>`;
   }).join('');
 }
 
-function roomClick(r){
-  const t = tenants[r];
-  if(t){
-    openEditTenant(r);
-  } else {
-    openAddTenant(r);
-  }
-}
+function roomClick(r){tenants[r]?openEditTenant(r):openAddTenant(r);}
 
 function updateMetrics(){
-  const occ = Object.keys(tenants).length;
-  const income = bills.filter(b=>{
-    const now = new Date();
-    const bm = b.month;
-    return bm === now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  }).reduce((s,b)=>s+b.total,0);
-  document.getElementById('m-occupied').textContent = occ;
-  document.getElementById('m-vacant').textContent = 13-occ;
-  document.getElementById('m-income').textContent = '฿'+income.toLocaleString();
+  const occ=Object.keys(tenants).length;
+  const now=new Date();
+  const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const income=bills.filter(b=>b.month===ym).reduce((s,b)=>s+b.total,0);
+  document.getElementById('m-occupied').textContent=occ;
+  document.getElementById('m-vacant').textContent=13-occ;
+  document.getElementById('m-income').textContent='฿'+income.toLocaleString();
 }
 
 function renderBillRoomSelect(){
-  const sel = document.getElementById('bill-room');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">-- เลือกห้อง --</option>';
-  ROOMS.forEach(r=>{
-    const t = tenants[r];
-    const label = t ? `ห้อง ${r} - ${t.name}` : `ห้อง ${r} (ว่าง)`;
-    sel.innerHTML += `<option value="${r}" ${cur==r?'selected':''}>${label}</option>`;
-  });
+  const sel=document.getElementById('bill-room'),cur=sel.value;
+  sel.innerHTML='<option value="">-- เลือกห้อง --</option>';
+  ROOMS.forEach(r=>{const t=tenants[r];sel.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>${t?`ห้อง ${r} – ${t.name}`:`ห้อง ${r} (ว่าง)`}</option>`;});
 }
 
 function loadTenantForBilling(){
-  const r = parseInt(document.getElementById('bill-room').value);
-  const t = tenants[r];
-  if(t){
-    document.getElementById('bill-tenant').value = t.name;
-    document.getElementById('bill-rent').value = t.rent;
-  } else {
-    document.getElementById('bill-tenant').value = '';
-    document.getElementById('bill-rent').value = '';
-  }
+  const r=parseInt(document.getElementById('bill-room').value),t=tenants[r];
+  document.getElementById('bill-tenant').value=t?t.name:'';
+  document.getElementById('bill-rent').value=t?t.rent:'';
   calcBill();
 }
 
 function calcBill(){
-  const wr = settings.waterRate;
-  const er = settings.elecRate;
-  const rent = parseFloat(document.getElementById('bill-rent').value)||0;
-  const wo = parseFloat(document.getElementById('water-old').value)||0;
-  const wn = parseFloat(document.getElementById('water-new').value)||0;
-  const eo = parseFloat(document.getElementById('elec-old').value)||0;
-  const en = parseFloat(document.getElementById('elec-new').value)||0;
-  const other = parseFloat(document.getElementById('bill-other').value)||0;
-  const wu = Math.max(0,wn-wo);
-  const eu = Math.max(0,en-eo);
-  const waterCost = wu*wr;
-  const elecCost = eu*er;
-  const total = rent+waterCost+elecCost+other;
-  document.getElementById('water-units').textContent = wu;
-  document.getElementById('elec-units').textContent = eu;
-  document.getElementById('water-rate-show').textContent = wr;
-  document.getElementById('elec-rate-show').textContent = er;
-  document.getElementById('sum-rent').textContent = '฿'+rent.toLocaleString();
-  document.getElementById('sum-water').textContent = '฿'+waterCost.toLocaleString();
-  document.getElementById('sum-elec').textContent = '฿'+elecCost.toLocaleString();
-  document.getElementById('sum-other').textContent = '฿'+other.toLocaleString();
-  document.getElementById('sum-total').textContent = '฿'+total.toLocaleString();
+  const wr=settings.waterRate,er=settings.elecRate;
+  const rent=parseFloat(document.getElementById('bill-rent').value)||0;
+  const wu=Math.max(0,(parseFloat(document.getElementById('water-new').value)||0)-(parseFloat(document.getElementById('water-old').value)||0));
+  const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
+  const other=parseFloat(document.getElementById('bill-other').value)||0;
+  const wc=wu*wr,ec=eu*er,total=rent+wc+ec+other;
+  document.getElementById('water-units').textContent=wu;document.getElementById('elec-units').textContent=eu;
+  document.getElementById('water-rate-show').textContent=wr;document.getElementById('elec-rate-show').textContent=er;
+  document.getElementById('sum-rent').textContent='฿'+rent.toLocaleString();
+  document.getElementById('sum-water').textContent='฿'+wc.toLocaleString();
+  document.getElementById('sum-elec').textContent='฿'+ec.toLocaleString();
+  document.getElementById('sum-other').textContent='฿'+other.toLocaleString();
+  document.getElementById('sum-total').textContent='฿'+total.toLocaleString();
 }
 
 function saveBill(){
-  const r = document.getElementById('bill-room').value;
-  if(!r){showAlert('กรุณาเลือกห้อง','danger');return;}
-  const month = document.getElementById('bill-month').value;
-  if(!month){showAlert('กรุณาเลือกเดือน','danger');return;}
-  const t = tenants[parseInt(r)];
-  const rent = parseFloat(document.getElementById('bill-rent').value)||0;
-  const wo = parseFloat(document.getElementById('water-old').value)||0;
-  const wn = parseFloat(document.getElementById('water-new').value)||0;
-  const eo = parseFloat(document.getElementById('elec-old').value)||0;
-  const en = parseFloat(document.getElementById('elec-new').value)||0;
-  const other = parseFloat(document.getElementById('bill-other').value)||0;
-  const wu = Math.max(0,wn-wo);
-  const eu = Math.max(0,en-eo);
-  const waterCost = wu*settings.waterRate;
-  const elecCost = eu*settings.elecRate;
-  const total = rent+waterCost+elecCost+other;
-  const note = document.getElementById('bill-note').value;
-  bills.push({room:parseInt(r),tenant:t?t.name:'-',month,rent,water:waterCost,elec:elecCost,other,total,note,status:'รอชำระ',date:new Date().toLocaleDateString('th-TH')});
-  updateMetrics();
-  renderHistory();
-  showAlert('บันทึกค่าเช่าห้อง '+r+' เรียบร้อยแล้ว','success');
+  const r=document.getElementById('bill-room').value,month=document.getElementById('bill-month').value;
+  if(!r){showAlert('bill-alert','กรุณาเลือกห้อง','danger');return;}
+  if(!month){showAlert('bill-alert','กรุณาเลือกเดือน','danger');return;}
+  const t=tenants[parseInt(r)];
+  const rent=parseFloat(document.getElementById('bill-rent').value)||0;
+  const wu=Math.max(0,(parseFloat(document.getElementById('water-new').value)||0)-(parseFloat(document.getElementById('water-old').value)||0));
+  const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
+  const other=parseFloat(document.getElementById('bill-other').value)||0;
+  const wc=wu*settings.waterRate,ec=eu*settings.elecRate,total=rent+wc+ec+other;
+  bills.push({room:parseInt(r),tenant:t?t.name:'-',month,rent,water:wc,elec:ec,other,total,note:document.getElementById('bill-note').value,status:'รอชำระ',date:new Date().toLocaleDateString('th-TH')});
+  updateMetrics();renderHistory();
+  showAlert('bill-alert','บันทึกค่าเช่าห้อง '+r+' เรียบร้อยแล้ว ✓','success');
 }
 
 function printBill(){
-  const r = document.getElementById('bill-room').value;
-  if(!r){showAlert('กรุณาเลือกห้องก่อน','danger');return;}
-  const total = document.getElementById('sum-total').textContent;
-  const month = document.getElementById('bill-month').value;
-  const tenant = document.getElementById('bill-tenant').value||'-';
-  showAlert('พิมพ์ใบแจ้งหนี้ห้อง '+r+' ผู้เช่า: '+tenant+' เดือน '+month+' ยอด '+total,'success');
+  const r=document.getElementById('bill-room').value;
+  if(!r){showAlert('bill-alert','กรุณาเลือกห้องก่อน','danger');return;}
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ใบแจ้งหนี้ห้อง ${r}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+  <style>body{font-family:'Sarabun',sans-serif;max-width:380px;margin:2rem auto;padding:1rem}h2,h3{text-align:center;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:1rem}td{padding:8px 4px;border-bottom:1px solid #eee}.bold{font-weight:600;font-size:18px}.footer{text-align:center;margin-top:2rem;color:#888;font-size:13px}</style></head>
+  <body><h2>หอพักดำรงรักษ์</h2><h3>ใบแจ้งหนี้ค่าเช่า</h3>
+  <table>
+  <tr><td>ห้อง</td><td><b>${r}</b></td></tr>
+  <tr><td>ผู้เช่า</td><td>${document.getElementById('bill-tenant').value||'-'}</td></tr>
+  <tr><td>เดือน</td><td>${document.getElementById('bill-month').value}</td></tr>
+  <tr><td>ค่าห้อง</td><td>${document.getElementById('sum-rent').textContent}</td></tr>
+  <tr><td>ค่าน้ำ (${document.getElementById('water-units').textContent} หน่วย)</td><td>${document.getElementById('sum-water').textContent}</td></tr>
+  <tr><td>ค่าไฟ (${document.getElementById('elec-units').textContent} หน่วย)</td><td>${document.getElementById('sum-elec').textContent}</td></tr>
+  <tr><td>ค่าอื่นๆ</td><td>${document.getElementById('sum-other').textContent}</td></tr>
+  <tr><td class="bold">รวมทั้งหมด</td><td class="bold">${document.getElementById('sum-total').textContent}</td></tr>
+  </table>
+  <div class="footer">📞 080-499-9116<br>ขอบคุณที่เลือกพักกับเรา</div>
+  <script>window.onload=function(){window.print()}<\/script></body></html>`);
 }
 
-function renderTenants(){
-  const tbody = document.getElementById('tenant-table');
-  const tRoomSel = document.getElementById('t-room');
-  tRoomSel.innerHTML = '<option value="">-- เลือกห้อง --</option>';
-  ROOMS.filter(r=>!tenants[r]).forEach(r=>{
-    tRoomSel.innerHTML += `<option value="${r}">ห้อง ${r}</option>`;
-  });
-  if(Object.keys(tenants).length===0){
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--color-text-secondary);padding:2rem">ยังไม่มีผู้เช่า กดปุ่ม "เพิ่มผู้เช่า" เพื่อเริ่มต้น</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = Object.entries(tenants).map(([r,t])=>`
+function renderTenantTable(){
+  const tbody=document.getElementById('tenant-table'),keys=Object.keys(tenants);
+  if(!keys.length){tbody.innerHTML='<tr><td colspan="7" class="empty-state">ยังไม่มีผู้เช่า — กดปุ่มเพิ่มผู้เช่าเพื่อเริ่มต้น</td></tr>';return;}
+  tbody.innerHTML=keys.map(r=>{const t=tenants[r];return`
     <tr>
-      <td><strong>${r}</strong></td>
-      <td>${t.name}</td>
-      <td>${t.phone}</td>
-      <td>${t.date}</td>
-      <td>฿${parseInt(t.rent).toLocaleString()}</td>
+      <td><b style="color:#1a1a2e">${r}</b></td>
+      <td>${t.name}</td><td>${t.phone||'-'}</td><td>${t.date||'-'}</td>
+      <td>฿${parseInt(t.rent||0).toLocaleString()}</td>
       <td><span class="badge badge-green">อยู่</span></td>
-      <td><button class="btn btn-sm" onclick="openEditTenant(${r})"><i class="ti ti-edit" aria-hidden="true"></i></button> <button class="btn btn-sm" onclick="removeTenant(${r})" style="color:var(--color-text-danger)"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
-    </tr>`).join('');
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="openEditTenant(${r})" title="แก้ไข">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="removeTenant(${r})" title="ลบ">🗑️</button>
+      </td>
+    </tr>`;}).join('');
 }
 
 function openAddTenant(preRoom){
-  editingRoom = null;
-  document.getElementById('modal-tenant-title').textContent = 'เพิ่มผู้เช่าใหม่';
-  document.getElementById('t-name').value='';
-  document.getElementById('t-phone').value='';
-  document.getElementById('t-date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('t-rent').value='1500';
-  renderTenants();
-  if(preRoom) document.getElementById('t-room').value = preRoom;
+  editingRoom=null;
+  document.getElementById('modal-tenant-title').textContent='เพิ่มผู้เช่าใหม่';
+  const sel=document.getElementById('t-room');
+  sel.innerHTML='<option value="">-- เลือกห้อง --</option>';
+  ROOMS.filter(r=>!tenants[r]).forEach(r=>sel.innerHTML+=`<option value="${r}">ห้อง ${r}</option>`);
+  if(preRoom)sel.value=preRoom;
+  ['t-name','t-phone','t-date','t-rent'].forEach(id=>document.getElementById(id).value=id==='t-rent'?'1500':id==='t-date'?new Date().toISOString().split('T')[0]:'');
+  document.getElementById('tenant-alert').innerHTML='';
   document.getElementById('modal-tenant').classList.add('open');
 }
 
 function openEditTenant(r){
-  editingRoom = r;
-  const t = tenants[r];
-  document.getElementById('modal-tenant-title').textContent = 'แก้ไขข้อมูลผู้เช่าห้อง '+r;
-  document.getElementById('t-room').innerHTML = `<option value="${r}">ห้อง ${r}</option>`;
-  document.getElementById('t-room').value = r;
-  document.getElementById('t-name').value = t.name;
-  document.getElementById('t-phone').value = t.phone;
-  document.getElementById('t-date').value = t.dateRaw||'';
-  document.getElementById('t-rent').value = t.rent;
+  editingRoom=r;const t=tenants[r];
+  document.getElementById('modal-tenant-title').textContent='แก้ไขผู้เช่าห้อง '+r;
+  const sel=document.getElementById('t-room');
+  sel.innerHTML=`<option value="${r}">ห้อง ${r}</option>`;
+  document.getElementById('t-name').value=t.name;
+  document.getElementById('t-phone').value=t.phone||'';
+  document.getElementById('t-date').value=t.dateRaw||'';
+  document.getElementById('t-rent').value=t.rent;
+  document.getElementById('tenant-alert').innerHTML='';
   document.getElementById('modal-tenant').classList.add('open');
 }
 
 function saveTenant(){
-  const r = parseInt(document.getElementById('t-room').value);
-  const name = document.getElementById('t-name').value.trim();
-  const phone = document.getElementById('t-phone').value.trim();
-  const dateRaw = document.getElementById('t-date').value;
-  const rent = document.getElementById('t-rent').value;
-  if(!r||!name){showAlert('กรุณากรอกข้อมูลให้ครบ','danger');return;}
-  const dateObj = new Date(dateRaw);
-  const dateDisplay = dateObj.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
-  tenants[r] = {name,phone,date:dateDisplay,dateRaw,rent};
-  closeModal('modal-tenant');
-  renderRooms();
-  renderTenants();
-  renderBillRoomSelect();
-  updateMetrics();
-  showAlert('บันทึกข้อมูลผู้เช่าห้อง '+r+' เรียบร้อย','success');
+  const r=parseInt(document.getElementById('t-room').value);
+  const name=document.getElementById('t-name').value.trim();
+  if(!r||!name){showAlert('tenant-alert','กรุณากรอกข้อมูลให้ครบ','danger');return;}
+  const dateRaw=document.getElementById('t-date').value;
+  const d=new Date(dateRaw);
+  tenants[r]={name,phone:document.getElementById('t-phone').value.trim(),date:dateRaw?d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}):'-',dateRaw,rent:document.getElementById('t-rent').value};
+  closeModal('modal-tenant');renderRooms();renderTenantTable();renderBillRoomSelect();updateMetrics();
+  showAlert('alert-area','เพิ่มผู้เช่าห้อง '+r+' เรียบร้อยแล้ว ✓','success');
 }
 
 function removeTenant(r){
-  if(!confirm('ยืนยันการลบข้อมูลผู้เช่าห้อง '+r+'?')) return;
-  delete tenants[r];
-  renderRooms();
-  renderTenants();
-  renderBillRoomSelect();
-  updateMetrics();
-  showAlert('ลบข้อมูลผู้เช่าห้อง '+r+' แล้ว','success');
+  if(!confirm('ยืนยันการลบข้อมูลผู้เช่าห้อง '+r+'?'))return;
+  delete tenants[r];renderRooms();renderTenantTable();renderBillRoomSelect();updateMetrics();
 }
 
 function renderHistory(){
-  const filterRoom = document.getElementById('filter-room').value;
-  const filterSel = document.getElementById('filter-room');
-  filterSel.innerHTML = '<option value="">ทุกห้อง</option>';
-  ROOMS.forEach(r=>filterSel.innerHTML+=`<option value="${r}" ${filterRoom==r?'selected':''}>ห้อง ${r}</option>`);
-  const filtered = filterRoom ? bills.filter(b=>b.room==filterRoom) : bills;
-  const tbody = document.getElementById('history-table');
-  if(filtered.length===0){
-    tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--color-text-secondary);padding:2rem">ยังไม่มีประวัติการชำระเงิน</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = filtered.slice().reverse().map((b,i)=>`
+  const filterRoom=document.getElementById('filter-room')?.value||'';
+  const fr=document.getElementById('filter-room');
+  if(fr){const cur=fr.value;fr.innerHTML='<option value="">ทุกห้อง</option>';ROOMS.forEach(r=>fr.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>ห้อง ${r}</option>`);}
+  const filtered=filterRoom?bills.filter(b=>b.room==filterRoom):bills;
+  const tbody=document.getElementById('history-table');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="9" class="empty-state">ยังไม่มีประวัติการชำระเงิน</td></tr>';return;}
+  tbody.innerHTML=filtered.slice().reverse().map((b,i)=>`
     <tr>
-      <td>${b.room}</td>
-      <td>${b.tenant}</td>
-      <td>${b.month}</td>
-      <td>฿${b.rent.toLocaleString()}</td>
-      <td>฿${b.water.toLocaleString()}</td>
-      <td>฿${b.elec.toLocaleString()}</td>
-      <td>฿${b.other.toLocaleString()}</td>
-      <td><strong>฿${b.total.toLocaleString()}</strong></td>
-      <td>
-        <span class="badge ${b.status==='ชำระแล้ว'?'badge-green':'badge-amber'}" style="cursor:pointer" onclick="toggleStatus(${filtered.length-1-i})">${b.status}</span>
-      </td>
+      <td><b>${b.room}</b></td><td>${b.tenant}</td><td>${b.month}</td>
+      <td>฿${b.rent.toLocaleString()}</td><td>฿${b.water.toLocaleString()}</td>
+      <td>฿${b.elec.toLocaleString()}</td><td>฿${b.other.toLocaleString()}</td>
+      <td><b>฿${b.total.toLocaleString()}</b></td>
+      <td><span class="${b.status==='ชำระแล้ว'?'badge badge-paid':'badge badge-amber'}" onclick="toggleStatus(${filtered.length-1-i})" title="คลิกเพื่อเปลี่ยนสถานะ">${b.status}</span></td>
     </tr>`).join('');
 }
 
-function toggleStatus(idx){
-  const filtered = bills;
-  const b = filtered[idx];
-  b.status = b.status==='ชำระแล้ว'?'รอชำระ':'ชำระแล้ว';
-  updateMetrics();
-  renderHistory();
-}
+function toggleStatus(idx){bills[idx].status=bills[idx].status==='ชำระแล้ว'?'รอชำระ':'ชำระแล้ว';updateMetrics();renderHistory();}
 
 function saveSettings(){
-  settings.waterRate = parseFloat(document.getElementById('set-water').value)||5;
-  settings.elecRate = parseFloat(document.getElementById('set-elec').value)||8;
-  calcBill();
-  showAlert('บันทึกการตั้งค่าเรียบร้อย','success');
+  settings.waterRate=parseFloat(document.getElementById('set-water').value)||5;
+  settings.elecRate=parseFloat(document.getElementById('set-elec').value)||8;
+  calcBill();showAlert('settings-alert','บันทึกการตั้งค่าเรียบร้อย ✓','success');
 }
 
-function closeModal(id){document.getElementById(id).classList.remove('open')}
-
-function showAlert(msg,type){
-  const area = document.getElementById('alert-area');
-  area.innerHTML = `<div class="alert alert-${type}" style="margin:0">${msg}</div>`;
-  setTimeout(()=>area.innerHTML='',3000);
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModalBg(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+function showAlert(id,msg,type){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=`<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(()=>el.innerHTML='',3000);
 }
-
-document.querySelectorAll('.modal-bg').forEach(m=>{
-  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')});
-});
 
 init();
 </script>
+</body>
+</html>
