@@ -183,10 +183,8 @@ tr:hover td{background:#fafafe}
         <hr class="divider">
         <label>ค่าห้อง (บาท)</label>
         <input type="number" id="bill-rent" placeholder="0" oninput="calcBill()">
-        <div class="grid2">
-          <div><label>มิเตอร์น้ำเก่า</label><input type="number" id="water-old" placeholder="0" oninput="calcBill()"></div>
-          <div><label>มิเตอร์น้ำใหม่</label><input type="number" id="water-new" placeholder="0" oninput="calcBill()"></div>
-        </div>
+        <label>ค่าน้ำ (บาท)</label>
+        <input type="number" id="bill-water" readonly>
         <div class="grid2">
           <div><label>มิเตอร์ไฟเก่า</label><input type="number" id="elec-old" placeholder="0" oninput="calcBill()"></div>
           <div><label>มิเตอร์ไฟใหม่</label><input type="number" id="elec-new" placeholder="0" oninput="calcBill()"></div>
@@ -200,7 +198,7 @@ tr:hover td{background:#fafafe}
         <div class="card-title">สรุปค่าเช่า</div>
         <div class="total-box">
           <div class="total-row"><span>ค่าห้อง</span><span id="sum-rent">฿0</span></div>
-          <div class="total-row"><span>ค่าน้ำ (<span id="water-units">0</span> หน่วย × <span id="water-rate-show">5</span>฿)</span><span id="sum-water">฿0</span></div>
+          <div class="total-row"><span>ค่าน้ำ</span><span id="sum-water">฿0</span></div>
           <div class="total-row"><span>ค่าไฟ (<span id="elec-units">0</span> หน่วย × <span id="elec-rate-show">8</span>฿)</span><span id="sum-elec">฿0</span></div>
           <div class="total-row"><span>ค่าอื่นๆ</span><span id="sum-other">฿0</span></div>
           <div class="total-row final"><span>รวมทั้งหมด</span><span id="sum-total" style="color:#8b5cf6">฿0</span></div>
@@ -262,7 +260,7 @@ tr:hover td{background:#fafafe}
     <div class="card">
       <div class="card-title">ตั้งค่าอัตราค่าน้ำ-ค่าไฟ</div>
       <div class="grid2">
-        <div><label>ค่าน้ำต่อหน่วย (บาท)</label><input type="number" id="set-water" value="5" min="1"></div>
+        <div><label>ค่าน้ำ (บาท)</label><input type="number" id="set-water" value="100" min="0"></div>
         <div><label>ค่าไฟต่อหน่วย (บาท)</label><input type="number" id="set-elec" value="8" min="1"></div>
       </div>
       <button class="btn btn-primary" onclick="saveSettings()">
@@ -305,11 +303,13 @@ tr:hover td{background:#fafafe}
 
 <script>
 const ROOMS=[12,13,14,15,16,17,18,19,20,21,22,23,24];
-let tenants={},bills=[],settings={waterRate:5,elecRate:8},editingRoom=null;
+let tenants={},bills=[],settings={waterRate:100,elecRate:8},editingRoom=null;
 
 function init(){
   const now=new Date();
   document.getElementById('bill-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('set-water').value=settings.waterRate;
+  document.getElementById('set-elec').value=settings.elecRate;
   renderRooms();renderBillRoomSelect();renderTenantTable();renderHistory();updateMetrics();
 }
 
@@ -360,12 +360,13 @@ function loadTenantForBilling(){
 function calcBill(){
   const wr=settings.waterRate,er=settings.elecRate;
   const rent=parseFloat(document.getElementById('bill-rent').value)||0;
-  const wu=Math.max(0,(parseFloat(document.getElementById('water-new').value)||0)-(parseFloat(document.getElementById('water-old').value)||0));
   const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
   const other=parseFloat(document.getElementById('bill-other').value)||0;
-  const wc=wu*wr,ec=eu*er,total=rent+wc+ec+other;
-  document.getElementById('water-units').textContent=wu;document.getElementById('elec-units').textContent=eu;
-  document.getElementById('water-rate-show').textContent=wr;document.getElementById('elec-rate-show').textContent=er;
+  const wc=wr,ec=eu*er,total=rent+wc+ec+other;
+  const billWaterEl=document.getElementById('bill-water');
+  if(billWaterEl)billWaterEl.value=wr;
+  document.getElementById('elec-units').textContent=eu;
+  document.getElementById('elec-rate-show').textContent=er;
   document.getElementById('sum-rent').textContent='฿'+rent.toLocaleString();
   document.getElementById('sum-water').textContent='฿'+wc.toLocaleString();
   document.getElementById('sum-elec').textContent='฿'+ec.toLocaleString();
@@ -379,10 +380,9 @@ function saveBill(){
   if(!month){showAlert('bill-alert','กรุณาเลือกเดือน','danger');return;}
   const t=tenants[parseInt(r)];
   const rent=parseFloat(document.getElementById('bill-rent').value)||0;
-  const wu=Math.max(0,(parseFloat(document.getElementById('water-new').value)||0)-(parseFloat(document.getElementById('water-old').value)||0));
   const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
   const other=parseFloat(document.getElementById('bill-other').value)||0;
-  const wc=wu*settings.waterRate,ec=eu*settings.elecRate,total=rent+wc+ec+other;
+  const wc=settings.waterRate,ec=eu*settings.elecRate,total=rent+wc+ec+other;
   bills.push({room:parseInt(r),tenant:t?t.name:'-',month,rent,water:wc,elec:ec,other,total,note:document.getElementById('bill-note').value,status:'รอชำระ',date:new Date().toLocaleDateString('th-TH')});
   updateMetrics();renderHistory();
   showAlert('bill-alert','บันทึกค่าเช่าห้อง '+r+' เรียบร้อยแล้ว ✓','success');
@@ -401,7 +401,7 @@ function printBill(){
   <tr><td>ผู้เช่า</td><td>${document.getElementById('bill-tenant').value||'-'}</td></tr>
   <tr><td>เดือน</td><td>${document.getElementById('bill-month').value}</td></tr>
   <tr><td>ค่าห้อง</td><td>${document.getElementById('sum-rent').textContent}</td></tr>
-  <tr><td>ค่าน้ำ (${document.getElementById('water-units').textContent} หน่วย)</td><td>${document.getElementById('sum-water').textContent}</td></tr>
+  <tr><td>ค่าน้ำ</td><td>${document.getElementById('sum-water').textContent}</td></tr>
   <tr><td>ค่าไฟ (${document.getElementById('elec-units').textContent} หน่วย)</td><td>${document.getElementById('sum-elec').textContent}</td></tr>
   <tr><td>ค่าอื่นๆ</td><td>${document.getElementById('sum-other').textContent}</td></tr>
   <tr><td class="bold">รวมทั้งหมด</td><td class="bold">${document.getElementById('sum-total').textContent}</td></tr>
@@ -471,7 +471,8 @@ function renderHistory(){
   const filterRoom=document.getElementById('filter-room')?.value||'';
   const fr=document.getElementById('filter-room');
   if(fr){const cur=fr.value;fr.innerHTML='<option value="">ทุกห้อง</option>';ROOMS.forEach(r=>fr.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>ห้อง ${r}</option>`);}
-  const filtered=filterRoom?bills.filter(b=>b.room==filterRoom):bills;
+  const billsWithIndex=bills.map((b,idx)=>({...b,originalIndex:idx}));
+  const filtered=filterRoom?billsWithIndex.filter(b=>b.room==filterRoom):billsWithIndex;
   const tbody=document.getElementById('history-table');
   if(!filtered.length){tbody.innerHTML='<tr><td colspan="9" class="empty-state">ยังไม่มีประวัติการชำระเงิน</td></tr>';return;}
   tbody.innerHTML=filtered.slice().reverse().map((b,i)=>`
@@ -480,14 +481,14 @@ function renderHistory(){
       <td>฿${b.rent.toLocaleString()}</td><td>฿${b.water.toLocaleString()}</td>
       <td>฿${b.elec.toLocaleString()}</td><td>฿${b.other.toLocaleString()}</td>
       <td><b>฿${b.total.toLocaleString()}</b></td>
-      <td><span class="${b.status==='ชำระแล้ว'?'badge badge-paid':'badge badge-amber'}" onclick="toggleStatus(${filtered.length-1-i})" title="คลิกเพื่อเปลี่ยนสถานะ">${b.status}</span></td>
+      <td><span class="${b.status==='ชำระแล้ว'?'badge badge-paid':'badge badge-amber'}" onclick="toggleStatus(${b.originalIndex})" title="คลิกเพื่อเปลี่ยนสถานะ">${b.status}</span></td>
     </tr>`).join('');
 }
 
 function toggleStatus(idx){bills[idx].status=bills[idx].status==='ชำระแล้ว'?'รอชำระ':'ชำระแล้ว';updateMetrics();renderHistory();}
 
 function saveSettings(){
-  settings.waterRate=parseFloat(document.getElementById('set-water').value)||5;
+  settings.waterRate=parseFloat(document.getElementById('set-water').value)||0;
   settings.elecRate=parseFloat(document.getElementById('set-elec').value)||8;
   calcBill();showAlert('settings-alert','บันทึกการตั้งค่าเรียบร้อย ✓','success');
 }
