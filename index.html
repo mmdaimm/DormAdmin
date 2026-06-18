@@ -65,6 +65,8 @@ input[readonly]{background:#f8f8fc;color:#888;border-color:#eee}
 .badge-green{background:#dcfce7;color:#16a34a}
 .badge-amber{background:#fef9c3;color:#ca8a04;cursor:pointer}
 .badge-paid{background:#dcfce7;color:#16a34a;cursor:pointer}
+.badge-partial{background:#fee2e2;color:#dc2626;cursor:pointer}
+.badge-carried{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 
 /* Room grid */
 .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
@@ -191,6 +193,8 @@ tr:hover td{background:#fafafe}
         </div>
         <label>ค่าอื่นๆ เช่น อินเทอร์เน็ต (บาท)</label>
         <input type="number" id="bill-other" placeholder="0" oninput="calcBill()">
+        <label>ยอดคงค้างเก่า (บาท)</label>
+        <input type="number" id="bill-outstanding" placeholder="0" oninput="calcBill()">
         <label>หมายเหตุ</label>
         <input type="text" id="bill-note" placeholder="ถ้ามี">
       </div>
@@ -201,6 +205,7 @@ tr:hover td{background:#fafafe}
           <div class="total-row"><span>ค่าน้ำ</span><span id="sum-water">฿0</span></div>
           <div class="total-row"><span>ค่าไฟ (<span id="elec-units">0</span> หน่วย × <span id="elec-rate-show">8</span>฿)</span><span id="sum-elec">฿0</span></div>
           <div class="total-row"><span>ค่าอื่นๆ</span><span id="sum-other">฿0</span></div>
+          <div class="total-row"><span>ยอดคงค้างเก่า</span><span id="sum-outstanding">฿0</span></div>
           <div class="total-row final"><span>รวมทั้งหมด</span><span id="sum-total" style="color:#8b5cf6">฿0</span></div>
         </div>
         <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:8px">
@@ -350,10 +355,17 @@ function renderBillRoomSelect(){
   ROOMS.forEach(r=>{const t=tenants[r];sel.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>${t?`ห้อง ${r} – ${t.name}`:`ห้อง ${r} (ว่าง)`}</option>`;});
 }
 
+function getOutstandingBalance(roomNum) {
+  return bills.filter(b => b.room === roomNum && (b.status === 'รอชำระ' || b.status === 'ยอดคงค้าง'))
+              .reduce((sum, b) => sum + (b.total - (b.paid || 0)), 0);
+}
+
 function loadTenantForBilling(){
   const r=parseInt(document.getElementById('bill-room').value),t=tenants[r];
   document.getElementById('bill-tenant').value=t?t.name:'';
   document.getElementById('bill-rent').value=t?t.rent:'';
+  const outstanding = r ? getOutstandingBalance(r) : 0;
+  document.getElementById('bill-outstanding').value = outstanding;
   calcBill();
 }
 
@@ -362,7 +374,8 @@ function calcBill(){
   const rent=parseFloat(document.getElementById('bill-rent').value)||0;
   const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
   const other=parseFloat(document.getElementById('bill-other').value)||0;
-  const wc=wr,ec=eu*er,total=rent+wc+ec+other;
+  const outstanding=parseFloat(document.getElementById('bill-outstanding').value)||0;
+  const wc=wr,ec=eu*er,total=rent+wc+ec+other+outstanding;
   const billWaterEl=document.getElementById('bill-water');
   if(billWaterEl)billWaterEl.value=wr;
   document.getElementById('elec-units').textContent=eu;
@@ -371,6 +384,7 @@ function calcBill(){
   document.getElementById('sum-water').textContent='฿'+wc.toLocaleString();
   document.getElementById('sum-elec').textContent='฿'+ec.toLocaleString();
   document.getElementById('sum-other').textContent='฿'+other.toLocaleString();
+  document.getElementById('sum-outstanding').textContent='฿'+outstanding.toLocaleString();
   document.getElementById('sum-total').textContent='฿'+total.toLocaleString();
 }
 
@@ -382,8 +396,18 @@ function saveBill(){
   const rent=parseFloat(document.getElementById('bill-rent').value)||0;
   const eu=Math.max(0,(parseFloat(document.getElementById('elec-new').value)||0)-(parseFloat(document.getElementById('elec-old').value)||0));
   const other=parseFloat(document.getElementById('bill-other').value)||0;
-  const wc=settings.waterRate,ec=eu*settings.elecRate,total=rent+wc+ec+other;
-  bills.push({room:parseInt(r),tenant:t?t.name:'-',month,rent,water:wc,elec:ec,other,total,note:document.getElementById('bill-note').value,status:'รอชำระ',date:new Date().toLocaleDateString('th-TH')});
+  const outstanding=parseFloat(document.getElementById('bill-outstanding').value)||0;
+  const wc=settings.waterRate,ec=eu*settings.elecRate,total=rent+wc+ec+other+outstanding;
+  
+  // Mark previous unpaid or partially paid bills for this room as Carried Forward (ทบยอดแล้ว)
+  bills.forEach(b => {
+    if (b.room === parseInt(r) && (b.status === 'รอชำระ' || b.status === 'ยอดคงค้าง')) {
+      b.status = 'ทบยอดแล้ว';
+      b.paid = b.total; // Marked as resolved because it is rolled into the new bill
+    }
+  });
+
+  bills.push({room:parseInt(r),tenant:t?t.name:'-',month,rent,water:wc,elec:ec,other,outstanding,total,paid:0,note:document.getElementById('bill-note').value,status:'รอชำระ',date:new Date().toLocaleDateString('th-TH')});
   updateMetrics();renderHistory();
   showAlert('bill-alert','บันทึกค่าเช่าห้อง '+r+' เรียบร้อยแล้ว ✓','success');
 }
@@ -391,6 +415,8 @@ function saveBill(){
 function printBill(){
   const r=document.getElementById('bill-room').value;
   if(!r){showAlert('bill-alert','กรุณาเลือกห้องก่อน','danger');return;}
+  const outstandingVal=parseFloat(document.getElementById('bill-outstanding').value)||0;
+  const outstandingText=outstandingVal>0?`<tr><td>ยอดคงค้างเก่า</td><td>${document.getElementById('sum-outstanding').textContent}</td></tr>`:'';
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ใบแจ้งหนี้ห้อง ${r}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
@@ -404,6 +430,7 @@ function printBill(){
   <tr><td>ค่าน้ำ</td><td>${document.getElementById('sum-water').textContent}</td></tr>
   <tr><td>ค่าไฟ (${document.getElementById('elec-units').textContent} หน่วย)</td><td>${document.getElementById('sum-elec').textContent}</td></tr>
   <tr><td>ค่าอื่นๆ</td><td>${document.getElementById('sum-other').textContent}</td></tr>
+  ${outstandingText}
   <tr><td class="bold">รวมทั้งหมด</td><td class="bold">${document.getElementById('sum-total').textContent}</td></tr>
   </table>
   <div class="footer">📞 080-499-9116<br>ขอบคุณที่เลือกพักกับเรา</div>
@@ -424,6 +451,89 @@ function renderTenantTable(){
         <button class="btn btn-sm btn-danger" onclick="removeTenant(${r})" title="ลบ">🗑️</button>
       </td>
     </tr>`;}).join('');
+}
+
+function renderHistory(){
+  const filterRoom=document.getElementById('filter-room')?.value||'';
+  const fr=document.getElementById('filter-room');
+  if(fr){const cur=fr.value;fr.innerHTML='<option value="">ทุกห้อง</option>';ROOMS.forEach(r=>fr.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>ห้อง ${r}</option>`);}
+  const billsWithIndex=bills.map((b,idx)=>({...b,originalIndex:idx}));
+  const filtered=filterRoom?billsWithIndex.filter(b=>b.room==filterRoom):billsWithIndex;
+  const tbody=document.getElementById('history-table');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="9" class="empty-state">ยังไม่มีประวัติการชำระเงิน</td></tr>';return;}
+  tbody.innerHTML=filtered.slice().reverse().map((b,i)=>{
+    let statusClass = 'badge-amber';
+    let statusText = b.status;
+    if (b.status === 'ชำระแล้ว') {
+      statusClass = 'badge-paid';
+    } else if (b.status === 'ยอดคงค้าง') {
+      statusClass = 'badge-partial';
+      statusText = `ยอดคงค้าง (ค้าง ฿${(b.total - (b.paid || 0)).toLocaleString()})`;
+    } else if (b.status === 'ทบยอดแล้ว') {
+      statusClass = 'badge-carried';
+    }
+    return `
+      <tr>
+        <td><b>${b.room}</b></td><td>${b.tenant}</td><td>${b.month}</td>
+        <td>฿${b.rent.toLocaleString()}</td><td>฿${b.water.toLocaleString()}</td>
+        <td>฿${b.elec.toLocaleString()}</td><td>฿${b.other.toLocaleString()}</td>
+        <td><b>฿${b.total.toLocaleString()}</b></td>
+        <td><span class="badge ${statusClass}" onclick="toggleStatus(${b.originalIndex})" title="คลิกเพื่อเปลี่ยนสถานะ">${statusText}</span></td>
+      </tr>`;
+  }).join('');
+}
+
+function toggleStatus(idx){
+  const bill = bills[idx];
+  if (bill.status === 'ทบยอดแล้ว') {
+    alert('รายการนี้ถูกทบยอดไปบิลเดือนใหม่แล้ว ไม่สามารถเปลี่ยนสถานะได้โดยตรง');
+    return;
+  }
+  
+  if (bill.status === 'ชำระแล้ว') {
+    if (confirm(`ต้องการเปลี่ยนสถานะห้อง ${bill.room} (${bill.month}) กลับเป็น "รอชำระ" หรือไม่?`)) {
+      bill.status = 'รอชำระ';
+      bill.paid = 0;
+      updateMetrics();
+      renderHistory();
+    }
+    return;
+  }
+  
+  // สำหรับ 'รอชำระ' หรือ 'ยอดคงค้าง'
+  const currentUnpaid = bill.total - (bill.paid || 0);
+  const promptMsg = bill.status === 'ยอดคงค้าง' 
+    ? `ห้อง ${bill.room} ประจำเดือน ${bill.month}\nยอดค้างชำระปัจจุบัน: ฿${currentUnpaid.toLocaleString()} (จากยอดเต็ม ฿${bill.total.toLocaleString()})\n\nกรุณากรอกจำนวนเงินที่ชำระเพิ่ม (บาท):`
+    : `ห้อง ${bill.room} ประจำเดือน ${bill.month}\nยอดรวมค่าเช่า: ฿${bill.total.toLocaleString()}\n\nกรุณากรอกจำนวนเงินที่ต้องการชำระ (บาท)\n(หากชำระเต็มจำนวน ให้เว้นว่างไว้แล้วกดตกลง):`;
+    
+  const input = prompt(promptMsg);
+  if (input === null) return; // กดยกเลิก
+  
+  const trimInput = input.trim();
+  let amount = 0;
+  if (trimInput === '') {
+    // ถ้าไม่กรอกตัวเลข ถือว่าชำระเต็มจำนวนคงค้างทั้งหมด
+    amount = currentUnpaid;
+  } else {
+    amount = parseFloat(trimInput);
+    if (isNaN(amount) || amount < 0) {
+      alert('กรุณากรอกจำนวนเงินให้ถูกต้อง');
+      return;
+    }
+  }
+  
+  if (amount >= currentUnpaid) {
+    bill.paid = bill.total;
+    bill.status = 'ชำระแล้ว';
+  } else if (amount === 0 && bill.status === 'รอชำระ') {
+    return;
+  } else {
+    bill.paid = (bill.paid || 0) + amount;
+    bill.status = 'ยอดคงค้าง';
+  }
+  
+  updateMetrics();
+  renderHistory();
 }
 
 function openAddTenant(preRoom){
@@ -467,25 +577,6 @@ function removeTenant(r){
   delete tenants[r];renderRooms();renderTenantTable();renderBillRoomSelect();updateMetrics();
 }
 
-function renderHistory(){
-  const filterRoom=document.getElementById('filter-room')?.value||'';
-  const fr=document.getElementById('filter-room');
-  if(fr){const cur=fr.value;fr.innerHTML='<option value="">ทุกห้อง</option>';ROOMS.forEach(r=>fr.innerHTML+=`<option value="${r}" ${cur==r?'selected':''}>ห้อง ${r}</option>`);}
-  const billsWithIndex=bills.map((b,idx)=>({...b,originalIndex:idx}));
-  const filtered=filterRoom?billsWithIndex.filter(b=>b.room==filterRoom):billsWithIndex;
-  const tbody=document.getElementById('history-table');
-  if(!filtered.length){tbody.innerHTML='<tr><td colspan="9" class="empty-state">ยังไม่มีประวัติการชำระเงิน</td></tr>';return;}
-  tbody.innerHTML=filtered.slice().reverse().map((b,i)=>`
-    <tr>
-      <td><b>${b.room}</b></td><td>${b.tenant}</td><td>${b.month}</td>
-      <td>฿${b.rent.toLocaleString()}</td><td>฿${b.water.toLocaleString()}</td>
-      <td>฿${b.elec.toLocaleString()}</td><td>฿${b.other.toLocaleString()}</td>
-      <td><b>฿${b.total.toLocaleString()}</b></td>
-      <td><span class="${b.status==='ชำระแล้ว'?'badge badge-paid':'badge badge-amber'}" onclick="toggleStatus(${b.originalIndex})" title="คลิกเพื่อเปลี่ยนสถานะ">${b.status}</span></td>
-    </tr>`).join('');
-}
-
-function toggleStatus(idx){bills[idx].status=bills[idx].status==='ชำระแล้ว'?'รอชำระ':'ชำระแล้ว';updateMetrics();renderHistory();}
 
 function saveSettings(){
   settings.waterRate=parseFloat(document.getElementById('set-water').value)||0;
