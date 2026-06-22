@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Rates {
-  electricRate: number;
-  waterRate: number;
-}
+import type { Rates } from '@/services/sheetService';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,14 +56,19 @@ export default function SettingsPage() {
     const load = async () => {
       try {
         const res = await fetch('/api/settings');
+        if (!res.ok) throw new Error(`โหลดการตั้งค่าล้มเหลว (HTTP ${res.status})`);
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
         const r: Rates = data.rates;
         setCurrentRates(r);
         setElecInput(String(r.electricRate));
         setWaterInput(String(r.waterRate));
-      } catch {
-        setFetchError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อกับ Google Sheets');
+      } catch (err: unknown) {
+        setFetchError(
+          err instanceof Error
+            ? err.message
+            : 'ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อกับ Google Sheets'
+        );
       } finally {
         setLoading(false);
       }
@@ -102,6 +101,9 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ electricRate: elec, waterRate: water }),
       });
+      if (!res.ok && res.status !== 422) {
+        throw new Error(`เซิฟเวอร์ไม่ตอบสนอง (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
+      }
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
-import { getRates } from '@/services/sheetService';
-
-const SHEET_SETTINGS = 'Settings';
+import { getRates, SHEET_SETTINGS } from '@/services/sheetService';
 
 /**
  * GET /api/settings

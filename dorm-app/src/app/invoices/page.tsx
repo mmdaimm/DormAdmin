@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import type { Invoice } from '@/types';
+import type { Rates } from '@/services/sheetService';
 
 // ── PDF layer: fully quarantined from SSR ────────────────────────────────────
 // PdfDownloadButtons imports @react-pdf/renderer internally. By wrapping it
@@ -28,11 +29,6 @@ interface RoomWithMeta {
   lineToken: string;
   prevMeter: number;
   lastStatus: string | null;
-}
-
-interface Rates {
-  electricRate: number;
-  waterRate: number;
 }
 
 interface SubmitResult {
@@ -79,6 +75,10 @@ export default function InvoicesPage() {
           fetch('/api/rooms'),
           fetch('/api/settings'),
         ]);
+
+        if (!roomsRes.ok) throw new Error(`โหลดข้อมูลห้องล้มเหลว (${roomsRes.status})`);
+        if (!ratesRes.ok) throw new Error(`โหลดอัตราค่าบริการล้มเหลว (${ratesRes.status})`);
+
         const roomsData = await roomsRes.json();
         const ratesData = await ratesRes.json();
 
@@ -108,14 +108,8 @@ export default function InvoicesPage() {
     const elec = units * rates.electricRate;
     const water = rates.waterRate;
 
-    // Determine arrears preview
-    let arrears = 0;
-    if (selectedRoom.lastStatus === 'UNPAID') {
-      arrears = 0; // We don't have totalAmount here; server will compute
-    }
-
     const total = selectedRoom.monthlyRent + elec + water + other;
-    return { units, elec, water, other, total, arrears };
+    return { units, elec, water, other, total };
   }, [selectedRoom, currMeter, otherBill, rates]);
 
   // ── Submit handler ───────────────────────────────────────────────────────────
@@ -147,6 +141,12 @@ export default function InvoicesPage() {
           lineToken: selectedRoom.lineToken,
         }),
       });
+
+      if (!res.ok && res.status !== 409) {
+        // Non-JSON responses (e.g. 502 HTML gateway errors)
+        setSubmitError(`เกิดข้อผิดพลาด (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
+        return;
+      }
 
       const data = await res.json();
 

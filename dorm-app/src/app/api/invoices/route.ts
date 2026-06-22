@@ -124,6 +124,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // 3a. Guard against duplicate billing for the same room+period ──────────────
+  if (lastInvoice?.period === period) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `ห้อง ${roomNumber} ได้ออกใบแจ้งหนี้ประจำเดือน ${period} ไปเรียบร้อยแล้ว`,
+      },
+      { status: 409 }
+    );
+  }
+
   // 4. Resolve previous meter reading ──────────────────────────────────────────
   const prevMeter = lastInvoice?.currMeter ?? 0;
 
@@ -201,6 +212,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         otherBill: invoice.otherBill,
         arrears: invoice.arrears,
         totalAmount: invoice.totalAmount,
+        paidAmount: invoice.paidAmount,   // ← required by SlipPdf for receipt rendering
         status: invoice.status,
       },
     },

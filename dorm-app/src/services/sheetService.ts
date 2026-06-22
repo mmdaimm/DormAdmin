@@ -4,7 +4,7 @@ import type { Invoice, Room, SettingRate } from '@/types';
 
 // ─── Sheet name constants ─────────────────────────────────────────────────────
 
-const SHEET_SETTINGS = 'Settings';
+export const SHEET_SETTINGS = 'Settings';
 const SHEET_ROOMS = 'Rooms';
 const SHEET_INVOICES = 'Invoices';
 
@@ -146,6 +146,24 @@ export async function getLastInvoiceByRoom(
   }
 
   return null;
+}
+
+/**
+ * Fetches **every** invoice row from the Invoices sheet in a single API call.
+ *
+ * Use this when you need data for multiple rooms at once (e.g. the rooms list
+ * endpoint) to avoid N+1 requests. Filter and group the result in memory.
+ *
+ * Returns an empty array if the sheet has no data rows yet.
+ */
+export async function getAllInvoices(): Promise<Invoice[]> {
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_INVOICES}!A2:K`,
+  });
+
+  const rows = response.data.values ?? [];
+  return rows.filter((row) => row[0]).map(rowToInvoice);
 }
 
 // ─── Arrears ──────────────────────────────────────────────────────────────────
