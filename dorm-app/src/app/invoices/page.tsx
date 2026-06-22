@@ -4,16 +4,19 @@ import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import type { Invoice } from '@/types';
 
-// PDFDownloadLink must be rendered client-side only (no SSR)
-const PDFDownloadLink = dynamic(
-  () => import('@react-pdf/renderer').then((m) => m.PDFDownloadLink),
-  { ssr: false, loading: () => <span className="text-sm text-indigo-300">กำลังเตรียม PDF…</span> }
-);
-
-// SlipPdf also client-only (uses Font.register)
-const SlipPdf = dynamic(
-  () => import('@/components/pdf/SlipPdf').then((m) => m.SlipPdf),
-  { ssr: false }
+// ── PDF layer: fully quarantined from SSR ────────────────────────────────────
+// PdfDownloadButtons imports @react-pdf/renderer internally. By wrapping it
+// with { ssr: false } here, Turbopack's server-side compiler never evaluates
+// the library, which eliminates the "ModuleId not found for ident:
+// [externals]/@react-pdf/renderer" build error.
+const SafePdfButtons = dynamic(
+  () => import('@/components/pdf/PdfDownloadButtons'),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-sm text-slate-500">⏳ กำลังโหลดระบบพิมพ์เอกสาร...</p>
+    ),
+  }
 );
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -229,72 +232,24 @@ export default function InvoicesPage() {
               )}
             </div>
 
-            {/* Download buttons */}
-            <div className="flex flex-col gap-3">
-              <PDFDownloadLink
-                document={
-                  <SlipPdf
-                    invoice={result.invoice}
-                    roomNumber={result.roomNumber}
-                    type="INVOICE"
-                    electricRate={result.electricRate}
-                  />
-                }
-                fileName={`Invoice-${result.invoice.invoiceId}.pdf`}
-                className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40"
-              >
-                {({ loading }) =>
-                  loading ? (
-                    'กำลังเตรียมไฟล์…'
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                      </svg>
-                      ดาวน์โหลดใบแจ้งหนี้ PDF
-                    </>
-                  )
-                }
-              </PDFDownloadLink>
+            {/* Download buttons — rendered entirely client-side via SafePdfButtons */}
+            <SafePdfButtons
+              invoice={result.invoice}
+              roomNumber={result.roomNumber}
+              electricRate={result.electricRate}
+            />
 
-              <PDFDownloadLink
-                document={
-                  <SlipPdf
-                    invoice={{ ...result.invoice, paidAmount: result.invoice.totalAmount, status: 'PAID' }}
-                    roomNumber={result.roomNumber}
-                    type="RECEIPT"
-                    electricRate={result.electricRate}
-                  />
-                }
-                fileName={`Receipt-${result.invoice.invoiceId}.pdf`}
-                className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-900/40"
-              >
-                {({ loading }) =>
-                  loading ? (
-                    'กำลังเตรียมไฟล์…'
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      ดาวน์โหลดใบเสร็จรับเงิน PDF
-                    </>
-                  )
-                }
-              </PDFDownloadLink>
-
-              <button
-                onClick={() => {
-                  setResult(null);
-                  setSelectedRoomId('');
-                  setCurrMeter('');
-                  setOtherBill('0');
-                }}
-                className="text-slate-500 hover:text-slate-300 text-sm py-2 transition-colors"
-              >
-                ← ออกบิลห้องถัดไป
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setResult(null);
+                setSelectedRoomId('');
+                setCurrMeter('');
+                setOtherBill('0');
+              }}
+              className="text-slate-500 hover:text-slate-300 text-sm py-2 transition-colors"
+            >
+              ← ออกบิลห้องถัดไป
+            </button>
           </div>
         </div>
       </div>
