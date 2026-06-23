@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { Invoice } from '@/types';
 import type { Rates } from '@/services/sheetService';
 
@@ -261,7 +262,19 @@ export default function InvoicesPage() {
   // ─── Render: main form ────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-950 py-10 px-4">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Back navigation */}
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg
+                       text-sm font-medium text-slate-500 hover:text-slate-300
+                       hover:bg-slate-800 transition-colors"
+          >
+            ← กลับหน้าเมนูหลัก
+          </Link>
+        </div>
 
         {/* Page header */}
         <div className="mb-8">
