@@ -10,6 +10,26 @@ export interface Room {
   lineToken: string;
 }
 
+// ─── Tenant ───────────────────────────────────────────────────────────────────
+/**
+ * Represents one tenant record as stored in the "Tenants" sheet.
+ *
+ * Field names match the sheet columns exactly (snake_case preserved):
+ * A=tenantId | B=firstname | C=lastname | D=phone | E=room_id | F=entryDate | G=status
+ */
+export interface Tenant {
+  tenantId: string;
+  firstname: string;
+  lastname: string;
+  /** Thai mobile number — must be exactly 10 digits (validated on save). */
+  phone: string;
+  /** Foreign key → Room.roomId (snake_case to match sheet header). */
+  room_id: string;
+  /** Move-in date in ISO format: YYYY-MM-DD */
+  entryDate: string;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
 // ─── Invoice ──────────────────────────────────────────────────────────────────
 export interface Invoice {
   /** Unique identifier stored in the sheet (e.g. "INV-2024-06-01"). */

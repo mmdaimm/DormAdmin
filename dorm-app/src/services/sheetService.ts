@@ -1,20 +1,23 @@
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { ELECTRIC_RATE_PER_UNIT, WATER_BILL_FIXED } from '@/config/dorm';
-import type { Invoice, Room, SettingRate } from '@/types';
+import type { Invoice, Room, SettingRate, Tenant } from '@/types';
 
 // ─── Sheet name constants ─────────────────────────────────────────────────────
 
 export const SHEET_SETTINGS = 'Settings';
 const SHEET_ROOMS = 'Rooms';
 const SHEET_INVOICES = 'Invoices';
+const SHEET_TENANTS = 'Tenants';
 
-// ─── Column layout assumptions ────────────────────────────────────────────────
+// ─── Column layout assumptions ──────────────────────────────────────────────────────────
 //
 // Settings  : A=key | B=value | C=description
 // Rooms     : A=roomId | B=roomNumber | C=monthlyRent | D=lineToken
 // Invoices  : A=invoiceId | B=roomId | C=period | D=prevMeter | E=currMeter
 //             F=waterBill | G=otherBill | H=arrears | I=totalAmount
 //             J=paidAmount | K=status
+// Tenants   : A=tenantId | B=firstname | C=lastname | D=phone
+//             E=room_id | F=entryDate | G=status
 
 // ─── Rates ────────────────────────────────────────────────────────────────────
 
@@ -227,5 +230,105 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
     requestBody: {
       values: [row],
     },
+  });
+}
+
+// ─── Tenants ──────────────────────────────────────────────────────────────────
+
+/**
+ * Maps a raw Tenants sheet row to a Tenant object.
+ * Column order: A=tenantId, B=firstname, C=lastname, D=phone, E=room_id, F=entryDate, G=status
+ */
+function rowToTenant(row: unknown[]): Tenant {
+  return {
+    tenantId:  String(row[0] ?? '').trim(),
+    firstname: String(row[1] ?? '').trim(),
+    lastname:  String(row[2] ?? '').trim(),
+    phone:     String(row[3] ?? '').trim(),
+    room_id:   String(row[4] ?? '').trim(),
+    entryDate: String(row[5] ?? '').trim(),
+    status:    ((row[6] as string | undefined)?.trim() === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'),
+  };
+}
+
+/**
+ * Fetches all tenant records from the **Tenants** sheet.
+ * Returns an empty array if the sheet has no data rows yet.
+ */
+export async function getTenants(): Promise<Tenant[]> {
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_TENANTS}!A2:G`,
+  });
+
+  const rows = response.data.values ?? [];
+  return rows.filter((row) => row[0]).map(rowToTenant);
+}
+
+/**
+ * Marks an invoice as PAID by updating **only column K** of the matching row.
+ *
+ * Concurrency guard: the current status is re-read from the sheet immediately
+ * before the write. If it is already 'PAID', the function throws instead of
+ * writing — preventing double-payment races where two browser tabs submit
+ * the same invoice simultaneously.
+ *
+ * @throws {Error} If the invoice is not found or is already PAID.
+ */
+export async function markInvoicePaid(invoiceId: string): Promise<void> {
+  // 1. Fetch full Invoices sheet to locate the row and verify live status.
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_INVOICES}!A2:K`,
+  });
+
+  const rows = response.data.values ?? [];
+  const rowIndex = rows.findIndex(
+    (row) => String(row[0] ?? '').trim() === invoiceId
+  );
+
+  if (rowIndex === -1) {
+    throw new Error(`ไม่พบใบแจ้งหนี้รหัส "${invoiceId}" ในระบบ`);
+  }
+
+  // 2. Concurrency guard: abort if someone else already paid this invoice.
+  const currentStatus = String(rows[rowIndex][10] ?? '').trim();
+  if (currentStatus === 'PAID') {
+    throw new Error(`ใบแจ้งหนี้ "${invoiceId}" ถูกบันทึกว่าชำระแล้ว`);
+  }
+
+  // 3. Row 1 is the header; data starts at row 2 → sheet row = rowIndex + 2.
+  const sheetRow = rowIndex + 2;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    // Target column K only — leaves all other columns untouched.
+    range: `${SHEET_INVOICES}!K${sheetRow}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [['PAID']] },
+  });
+}
+
+/**
+ * Appends a new tenant record to the **Tenants** sheet.
+ * Column order mirrors `rowToTenant` so reads and writes stay in sync.
+ */
+export async function saveTenant(tenant: Tenant): Promise<void> {
+  const row = [
+    tenant.tenantId,
+    tenant.firstname,
+    tenant.lastname,
+    tenant.phone,
+    tenant.room_id,
+    tenant.entryDate,
+    tenant.status,
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_TENANTS}!A1`,
+    valueInputOption: 'USER_ENTERED',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [row] },
   });
 }

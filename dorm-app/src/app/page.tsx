@@ -6,20 +6,41 @@ export const metadata: Metadata = {
   description: 'ระบบจัดการหอพัก — เลือกฟังก์ชันที่ต้องการใช้งาน',
 };
 
-// ─── Static navigation cards ─────────────────────────────────────────────────
-// This page renders NO dynamic data and makes ZERO API calls.
-// It is a pure static portal hub that links to functional sub-pages.
+// ─── Static navigation cards — ZERO API calls on this page ───────────────────
 
 const NAV_CARDS = [
   {
     href: '/invoices',
     emoji: '📄',
-    titleTH: 'ออกใบแจ้งหนี้ / ใบเสร็จ',
+    titleTH: 'ออกบิล / ใบเสร็จ',
     titleEN: 'Invoice & Receipt',
     description: 'คำนวณค่าเช่า ค่าไฟ ค่าน้ำ บันทึกข้อมูล และดาวน์โหลด PDF',
     accent: 'from-indigo-500/20 to-indigo-600/10 border-indigo-500/30 hover:border-indigo-400/60',
     iconBg: 'bg-indigo-500/20',
     badgeColor: 'text-indigo-400',
+    glow: 'hover:shadow-indigo-900/30',
+  },
+  {
+    href: '/dashboard',
+    emoji: '📊',
+    titleTH: 'แดชบอร์ด & ประวัติรับเงิน',
+    titleEN: 'Dashboard & Payments',
+    description: 'ดูภาพรวมการเงิน ยอดค้างชำระ และบันทึกการรับชำระเงิน',
+    accent: 'from-cyan-500/20 to-blue-600/10 border-cyan-500/30 hover:border-cyan-400/60',
+    iconBg: 'bg-cyan-500/20',
+    badgeColor: 'text-cyan-400',
+    glow: 'hover:shadow-cyan-900/30',
+  },
+  {
+    href: '/tenants',
+    emoji: '👥',
+    titleTH: 'จัดการข้อมูลผู้เช่า',
+    titleEN: 'Tenant Management',
+    description: 'ดูและแก้ไขข้อมูลผู้เช่าแต่ละห้อง เพิ่มผู้เช่าใหม่หรืออัพเดตสถานะ',
+    accent: 'from-violet-500/20 to-purple-600/10 border-violet-500/30 hover:border-violet-400/60',
+    iconBg: 'bg-violet-500/20',
+    badgeColor: 'text-violet-400',
+    glow: 'hover:shadow-violet-900/30',
   },
   {
     href: '/settings',
@@ -30,6 +51,7 @@ const NAV_CARDS = [
     accent: 'from-slate-700/40 to-slate-800/20 border-slate-600/40 hover:border-slate-500/70',
     iconBg: 'bg-slate-600/30',
     badgeColor: 'text-slate-400',
+    glow: 'hover:shadow-slate-900/30',
   },
 ] as const;
 
@@ -39,7 +61,8 @@ export default function HomePage() {
 
       {/* ── Hero Header ── */}
       <header className="pt-16 pb-10 px-4 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl
+                        bg-indigo-600/20 border border-indigo-500/30 mb-6">
           <span className="text-3xl">🏠</span>
         </div>
         <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
@@ -50,7 +73,7 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* ── Navigation Cards ── */}
+      {/* ── 2×2 Navigation Grid ── */}
       <main className="flex-1 px-4 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {NAV_CARDS.map((card) => (
@@ -61,7 +84,7 @@ export default function HomePage() {
                 group relative flex flex-col gap-4 p-6 rounded-2xl
                 bg-gradient-to-br ${card.accent}
                 border transition-all duration-200
-                hover:shadow-xl hover:-translate-y-0.5
+                hover:shadow-xl hover:-translate-y-0.5 ${card.glow}
                 min-h-[176px]
               `}
             >
@@ -87,9 +110,12 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Arrow */}
+              {/* Chevron arrow */}
               <div className="absolute top-5 right-5 text-slate-600 group-hover:text-slate-400 transition-colors">
-                <svg className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-0.5"
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
