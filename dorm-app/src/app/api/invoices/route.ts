@@ -213,6 +213,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         arrears: invoice.arrears,
         totalAmount: invoice.totalAmount,
         paidAmount: invoice.paidAmount,   // ← required by SlipPdf for receipt rendering
+        monthlyRent: room.monthlyRent,    // ← avoids floating-point drift in SlipPdf rent display
         status: invoice.status,
       },
     },

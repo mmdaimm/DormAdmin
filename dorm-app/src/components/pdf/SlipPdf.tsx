@@ -147,11 +147,6 @@ const S = StyleSheet.create({
     fontSize: 10,
     color: '#374151',
   },
-  rowTextBold: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#1a1a2e',
-  },
   arrearsText: {
     fontSize: 10,
     color: '#dc2626',
@@ -245,25 +240,23 @@ const S = StyleSheet.create({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Thai month names, 0-indexed (January = index 0). */
+const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+] as const;
+
 const fmt = (n: number) =>
   n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const periodToThai = (period: string): string => {
   const [year, month] = period.split('-');
-  const thaiMonths = [
-    '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-  ];
-  return `${thaiMonths[parseInt(month, 10)]} ${parseInt(year, 10) + 543}`;
+  return `${THAI_MONTHS[parseInt(month, 10) - 1]} ${parseInt(year, 10) + 543}`;
 };
 
 const todayThai = (): string => {
   const d = new Date();
-  const thaiMonths = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-  ];
-  return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -283,8 +276,11 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   const isReceipt = type === 'RECEIPT';
   const unitsUsed = invoice.currMeter - invoice.prevMeter;
   const electricBill = unitsUsed * electricRate;
-  // Derive rent from totalAmount back-calculation for display
-  const rent = invoice.totalAmount - electricBill - invoice.waterBill - invoice.otherBill - invoice.arrears;
+  // Use monthlyRent from the invoice directly when available (populated by the API).
+  // Fall back to back-calculation only for invoices loaded from the sheet directly
+  // (where monthlyRent is not stored), with a Math.max(0) guard against drift.
+  const rent = invoice.monthlyRent ??
+    Math.max(0, invoice.totalAmount - electricBill - invoice.waterBill - invoice.otherBill - invoice.arrears);
 
   const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
   const titleEN = isReceipt ? 'Receipt' : 'Invoice';

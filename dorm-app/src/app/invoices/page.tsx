@@ -84,8 +84,10 @@ export default function InvoicesPage() {
 
         if (roomsData.success) setRooms(roomsData.rooms);
         if (ratesData.success) setRates(ratesData.rates);
-      } catch {
-        setDataError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ');
+      } catch (err: unknown) {
+        setDataError(
+          err instanceof Error ? err.message : 'ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ'
+        );
       } finally {
         setLoadingData(false);
       }

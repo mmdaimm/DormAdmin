@@ -10,20 +10,6 @@ export interface Room {
   lineToken: string;
 }
 
-// ─── Tenant ───────────────────────────────────────────────────────────────────
-export interface Tenant {
-  /** Unique identifier stored in the sheet (e.g. "T001"). */
-  tenantId: string;
-  firstName: string;
-  lastName: string;
-  /** Thai mobile number, e.g. "0812345678". */
-  phone: string;
-  /** Foreign key → Room.roomId */
-  roomId: string;
-  /** Whether the tenant is currently occupying the room. */
-  status: 'ACTIVE' | 'INACTIVE';
-}
-
 // ─── Invoice ──────────────────────────────────────────────────────────────────
 export interface Invoice {
   /** Unique identifier stored in the sheet (e.g. "INV-2024-06-01"). */
@@ -49,6 +35,13 @@ export interface Invoice {
   totalAmount: number;
   /** Amount the tenant has already paid toward this invoice (Baht). */
   paidAmount: number;
+  /**
+   * Monthly base rent at the time the invoice was issued (Baht).
+   * Optional — populated by the API response but not stored in the sheet
+   * (the sheet row already contains totalAmount which subsumes rent).
+   * Used by SlipPdf to display rent directly without floating-point back-calculation.
+   */
+  monthlyRent?: number;
   /** Payment status of this invoice. */
   status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
 }
