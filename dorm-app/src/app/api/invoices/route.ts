@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { messagingApi } from '@line/bot-sdk';
 import {
   getRates,
   getRooms,
   getLastInvoiceByRoom,
   calculateArrears,
   saveInvoice,
+  getTenants,
 } from '@/services/sheetService';
 import type { Invoice } from '@/types';
 
@@ -16,47 +18,18 @@ interface CreateInvoiceBody {
   period: string;       // YYYY-MM
   currMeter: number;
   otherBill: number;
-  lineToken?: string;   // Optional — omit to skip LINE notification
 }
 
-// ─── LINE Notify helper ───────────────────────────────────────────────────────
+// ─── LINE Messaging API client (lazy singleton) ───────────────────────────────
 
 /**
- * Sends a Thai-language billing summary to a LINE Notify endpoint.
- * Failure is logged but does **not** abort the invoice creation flow.
+ * Returns a MessagingApiClient using the channel access token from env.
+ * Initialised lazily so missing env vars only error at runtime (not at build).
  */
-async function sendLineNotification(
-  lineToken: string,
-  roomNumber: string,
-  period: string,
-  total: number
-): Promise<void> {
-  const message =
-    `📢 แจ้งค่าเช่าห้อง ${roomNumber} ประจำเดือน ${period} ` +
-    `ยอดรวม: ${total.toLocaleString('th-TH')} บาท`;
-
-  try {
-    const params = new URLSearchParams({ message });
-
-    const response = await fetch('https://notify-api.line.me/api/notify', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${lineToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.warn(
-        `[POST /api/invoices] LINE Notify returned ${response.status}: ${text}`
-      );
-    }
-  } catch (error) {
-    // Network errors, invalid tokens, etc. must never fail the invoice save.
-    console.error('[POST /api/invoices] LINE Notify request failed:', error);
-  }
+function getLineClient(): messagingApi.MessagingApiClient {
+  return new messagingApi.MessagingApiClient({
+    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? '',
+  });
 }
 
 // ─── POST /api/invoices ───────────────────────────────────────────────────────
@@ -74,7 +47,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { roomId, roomNumber, period, currMeter, otherBill, lineToken } = body;
+  const { roomId, roomNumber, period, currMeter, otherBill } = body;
 
   if (!roomId || !roomNumber || !period || currMeter === undefined || otherBill === undefined) {
     return NextResponse.json(
@@ -186,13 +159,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 8. Send LINE Notify (fire-and-forget, non-blocking) ─────────────────────────
-  const effectiveToken = lineToken?.trim() || room.lineToken?.trim();
+  // 8. Push LINE Messaging API notification (fire-and-forget, non-blocking) ─────
+  //    Tenant lookup is done AFTER save so invoice creation is never delayed.
+  void (async () => {
+    try {
+      const tenants = await getTenants();
+      const tenant = tenants.find(
+        (t) => t.room_id === roomId && t.status === 'ACTIVE'
+      );
 
-  if (effectiveToken) {
-    // Intentionally not awaited — notification failure must not fail the API.
-    void sendLineNotification(effectiveToken, roomNumber, period, totalAmount);
-  }
+      if (tenant?.lineUserId) {
+        const lineMessage =
+          `📄 แจ้งค่าเช่าห้อง ${roomNumber} ประจำเดือน ${period}\n` +
+          `ยอดรวม: ${totalAmount.toLocaleString('th-TH')} บาท\n\n` +
+          `สามารถโอนเงินและส่งสลิปเข้ามาในแชทนี้ได้เลยค่ะ 😊`;
+
+        try {
+          await getLineClient().pushMessage({
+            to: tenant.lineUserId,
+            messages: [{ type: 'text', text: lineMessage }],
+          });
+        } catch (lineError) {
+          console.error('[LINE Push Failed - Create Invoice]', {
+            invoiceId: invoice.invoiceId,
+            lineUserId: tenant.lineUserId,
+            error: lineError,
+          });
+        }
+      }
+    } catch (tenantFetchError) {
+      // Tenant fetch failure must not surface to the client.
+      console.error('[POST /api/invoices] Failed to fetch tenants for LINE push:', tenantFetchError);
+    }
+  })();
 
   // 9. Return success ───────────────────────────────────────────────────────────
   return NextResponse.json(

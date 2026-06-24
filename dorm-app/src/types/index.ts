@@ -28,6 +28,8 @@ export interface Tenant {
   /** Move-in date in ISO format: YYYY-MM-DD */
   entryDate: string;
   status: 'ACTIVE' | 'INACTIVE';
+  /** LINE User ID for push notifications via the Messaging API (column H). */
+  lineUserId?: string;
 }
 
 // ─── Invoice ──────────────────────────────────────────────────────────────────

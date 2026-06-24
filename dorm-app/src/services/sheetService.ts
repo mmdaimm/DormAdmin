@@ -241,13 +241,15 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
  */
 function rowToTenant(row: unknown[]): Tenant {
   return {
-    tenantId:  String(row[0] ?? '').trim(),
-    firstname: String(row[1] ?? '').trim(),
-    lastname:  String(row[2] ?? '').trim(),
-    phone:     String(row[3] ?? '').trim(),
-    room_id:   String(row[4] ?? '').trim(),
-    entryDate: String(row[5] ?? '').trim(),
-    status:    ((row[6] as string | undefined)?.trim() === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'),
+    tenantId:   String(row[0] ?? '').trim(),
+    firstname:  String(row[1] ?? '').trim(),
+    lastname:   String(row[2] ?? '').trim(),
+    phone:      String(row[3] ?? '').trim(),
+    room_id:    String(row[4] ?? '').trim(),
+    entryDate:  String(row[5] ?? '').trim(),
+    status:     ((row[6] as string | undefined)?.trim() === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'),
+    // Column H — optional; undefined when cell is blank
+    lineUserId: row[7] ? String(row[7]).trim() : undefined,
   };
 }
 
@@ -258,7 +260,8 @@ function rowToTenant(row: unknown[]): Tenant {
 export async function getTenants(): Promise<Tenant[]> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_TENANTS}!A2:G`,
+    // A2:H — includes the optional lineUserId column (H)
+    range: `${SHEET_TENANTS}!A2:H`,
   });
 
   const rows = response.data.values ?? [];
@@ -273,9 +276,15 @@ export async function getTenants(): Promise<Tenant[]> {
  * writing — preventing double-payment races where two browser tabs submit
  * the same invoice simultaneously.
  *
+ * Returns `{ roomId, totalAmount }` extracted from the row that was already
+ * fetched during the concurrency guard — so the caller does NOT need to fetch
+ * the Invoices sheet a second time for downstream actions (e.g. LINE push).
+ *
  * @throws {Error} If the invoice is not found or is already PAID.
  */
-export async function markInvoicePaid(invoiceId: string): Promise<void> {
+export async function markInvoicePaid(
+  invoiceId: string
+): Promise<{ roomId: string; totalAmount: number }> {
   // 1. Fetch full Invoices sheet to locate the row and verify live status.
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -297,7 +306,12 @@ export async function markInvoicePaid(invoiceId: string): Promise<void> {
     throw new Error(`ใบแจ้งหนี้ "${invoiceId}" ถูกบันทึกว่าชำระแล้ว`);
   }
 
-  // 3. Row 1 is the header; data starts at row 2 → sheet row = rowIndex + 2.
+  // 3. Extract fields needed by the caller — reuse data already in memory.
+  //    Invoices column layout: B=roomId (index 1), I=totalAmount (index 8)
+  const roomId     = String(rows[rowIndex][1] ?? '').trim();
+  const totalAmount = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;
+
+  // 4. Row 1 is the header; data starts at row 2 → sheet row = rowIndex + 2.
   const sheetRow = rowIndex + 2;
 
   await sheets.spreadsheets.values.update({
@@ -307,6 +321,8 @@ export async function markInvoicePaid(invoiceId: string): Promise<void> {
     valueInputOption: 'RAW',
     requestBody: { values: [['PAID']] },
   });
+
+  return { roomId, totalAmount };
 }
 
 /**
