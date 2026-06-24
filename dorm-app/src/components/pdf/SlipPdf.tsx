@@ -352,7 +352,7 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
 
           {/* Row: Water */}
           <View style={S.tableRow}>
-            <Text style={[S.rowText, S.colDescription]}>ค่าน้ำประปา</Text>
+            <Text style={[S.rowText, S.colDescription]}>ค่าน้ำ </Text>
             <Text style={[S.rowText, S.colDetail]}>อัตราเหมาจ่าย</Text>
             <Text style={[S.rowText, S.colAmount]}>{fmt(invoice.waterBill)}</Text>
           </View>
