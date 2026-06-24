@@ -41,13 +41,14 @@ export async function POST(request: NextRequest) {
     // 3. Trigger Push
     const roomNumber = room?.roomNumber ?? invoice.roomId;
     const totalAmount = invoice.totalAmount.toLocaleString('th-TH');
-    const pdfUrl = invoice.pdfUrl ?? '';
+    const pdfUrlSection = invoice.pdfUrl 
+      ? `\n\n📄 สามารถดูและดาวน์โหลดใบแจ้งหนี้ได้ที่ลิงก์นี้ครับ:\n${invoice.pdfUrl}`
+      : '';
 
     const lineMessage =
       `📢 แจ้งเตือนจากหอพักดำรงรักษ์\n\n` +
       `บิลค่าเช่าห้อง ${roomNumber} ประจำเดือน ${invoice.period} ออกแล้วครับ\n` +
-      `ยอดชำระ: ${totalAmount} บาท\n\n` +
-      `📄 สามารถดูและดาวน์โหลดใบแจ้งหนี้ได้ที่ลิงก์นี้ครับ:\n${pdfUrl}`;
+      `ยอดชำระ: ${totalAmount} บาท${pdfUrlSection}`;
 
     await getLineClient().pushMessage({
       to: tenant.lineUserId,

@@ -136,7 +136,7 @@ export async function getLastInvoiceByRoom(
 ): Promise<Invoice | null> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:K`,
+    range: `${SHEET_INVOICES}!A2:L`,
   });
 
   const rows = response.data.values ?? [];
@@ -163,7 +163,7 @@ export async function getLastInvoiceByRoom(
 export async function getAllInvoices(): Promise<Invoice[]> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:K`,
+    range: `${SHEET_INVOICES}!A2:L`,
   });
 
   const rows = response.data.values ?? [];
@@ -290,7 +290,7 @@ export async function markInvoicePaid(
   // 1. Fetch full Invoices sheet to locate the row and verify live status.
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:K`,
+    range: `${SHEET_INVOICES}!A2:L`,
   });
 
   const rows = response.data.values ?? [];
