@@ -119,6 +119,7 @@ function rowToInvoice(row: unknown[]): Invoice {
     paidAmount: parseFloat(row[9] as string) || 0,
     status: (row[10] as Invoice['status']) ?? 'UNPAID',
     pdfUrl: row[11] ? String(row[11]).trim() : undefined,
+    remainingArrears: row[12] !== undefined && row[12] !== '' ? parseFloat(row[12] as string) : undefined,
   };
 }
 
@@ -136,7 +137,7 @@ export async function getLastInvoiceByRoom(
 ): Promise<Invoice | null> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:L`,
+    range: `${SHEET_INVOICES}!A2:M`,
   });
 
   const rows = response.data.values ?? [];
@@ -163,7 +164,7 @@ export async function getLastInvoiceByRoom(
 export async function getAllInvoices(): Promise<Invoice[]> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:L`,
+    range: `${SHEET_INVOICES}!A2:M`,
   });
 
   const rows = response.data.values ?? [];
@@ -189,8 +190,12 @@ export function calculateArrears(lastInvoice: Invoice | null): number {
     case 'UNPAID':
       return lastInvoice.totalAmount;
 
-    case 'PARTIALLY_PAID':
-      // Guard against negative arrears caused by data entry errors.
+    case 'PARTIAL':
+    case 'PARTIAL': // Support both string literal variations
+      // Use the new Column M (remainingArrears) if available, otherwise fallback
+      if (lastInvoice.remainingArrears !== undefined) {
+        return lastInvoice.remainingArrears;
+      }
       return Math.max(0, lastInvoice.totalAmount - lastInvoice.paidAmount);
 
     case 'PAID':
@@ -222,6 +227,7 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
     invoiceData.paidAmount,
     invoiceData.status,
     invoiceData.pdfUrl ?? '',
+    invoiceData.arrears, // Write calculated arrears strictly into Column M (Index 12)
   ];
 
   await sheets.spreadsheets.values.append({
@@ -290,7 +296,7 @@ export async function markInvoicePaid(
   // 1. Fetch full Invoices sheet to locate the row and verify live status.
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:L`,
+    range: `${SHEET_INVOICES}!A2:M`,
   });
 
   const rows = response.data.values ?? [];

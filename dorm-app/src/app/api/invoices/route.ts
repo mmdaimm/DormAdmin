@@ -3,7 +3,7 @@ import { messagingApi } from '@line/bot-sdk';
 import {
   getRates,
   getRooms,
-  getLastInvoiceByRoom,
+  getAllInvoices,
   calculateArrears,
   saveInvoice,
   getTenants,
@@ -72,13 +72,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 2. Fetch all data concurrently ──────────────────────────────────────────────
   let rates: Awaited<ReturnType<typeof getRates>>;
   let rooms: Awaited<ReturnType<typeof getRooms>>;
-  let lastInvoice: Awaited<ReturnType<typeof getLastInvoiceByRoom>>;
+  let allInvoices: Awaited<ReturnType<typeof getAllInvoices>>;
 
   try {
-    [rates, rooms, lastInvoice] = await Promise.all([
+    [rates, rooms, allInvoices] = await Promise.all([
       getRates(),
       getRooms(),
-      getLastInvoiceByRoom(roomId),
+      getAllInvoices(),
     ]);
   } catch (error) {
     console.error('[POST /api/invoices] Failed to fetch sheet data:', error);
@@ -99,7 +99,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 3a. Guard against duplicate billing for the same room+period ──────────────
-  if (lastInvoice?.period === period) {
+  const roomInvoices = allInvoices.filter(inv => inv.roomId === roomId);
+  const isDuplicate = roomInvoices.some(inv => inv.period === period);
+  
+  if (isDuplicate) {
     return NextResponse.json(
       {
         success: false,
@@ -108,6 +111,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 409 }
     );
   }
+
+  // 3b. Find the "Previous Invoice" (Sort by period DESC, NOT current period) ──
+  const previousInvoices = roomInvoices
+    .filter(inv => inv.period !== period)
+    .sort((a, b) => b.period.localeCompare(a.period));
+    
+  const lastInvoice = previousInvoices.length > 0 ? previousInvoices[0] : null;
 
   // 4. Resolve previous meter reading ──────────────────────────────────────────
   const prevMeter = lastInvoice?.currMeter ?? 0;

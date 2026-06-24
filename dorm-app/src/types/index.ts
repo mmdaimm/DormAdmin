@@ -65,13 +65,18 @@ export interface Invoice {
    */
   monthlyRent?: number;
   /** Payment status of this invoice. */
-  status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
+  status: 'PAID' | 'UNPAID' | 'PARTIAL';
   /**
    * Cloudflare R2 public URL of the uploaded PDF bill.
    * Optional — populated after the client uploads the PDF blob to R2.
    * Stored in the sheet as column L; used by the LINE push notification.
    */
   pdfUrl?: string;
+  /**
+   * Remaining arrears after a partial payment.
+   * Stored in the sheet as column M (Index 12).
+   */
+  remainingArrears?: number;
 }
 
 // ─── SettingRate ──────────────────────────────────────────────────────────────

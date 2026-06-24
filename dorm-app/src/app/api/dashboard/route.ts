@@ -51,7 +51,7 @@ export async function GET(): Promise<NextResponse> {
     ).length;
 
     const openInvoices = allInvoices.filter(
-      (inv) => inv.status === 'UNPAID' || inv.status === 'PARTIALLY_PAID'
+      (inv) => inv.status === 'UNPAID' || inv.status === 'PARTIAL'
     );
     const unpaidCount = openInvoices.length;
     const totalOutstanding = openInvoices.reduce(

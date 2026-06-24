@@ -23,18 +23,18 @@ interface EnrichedInvoice extends Invoice {
 const thb = (n: number) =>
   n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-type StatusFilter = 'ALL' | 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+type StatusFilter = 'ALL' | 'UNPAID' | 'PARTIAL' | 'PAID';
 
 const STATUS_LABEL: Record<Invoice['status'], string> = {
   PAID: 'ชำระแล้ว',
   UNPAID: 'ยังไม่ชำระ',
-  PARTIALLY_PAID: 'ชำระบางส่วน',
-};
+  PARTIAL: 'ชำระบางส่วน',        // 👈 เติมของใหม่เข้าไปตรงนี้!
+}
 
 const STATUS_STYLE: Record<Invoice['status'], string> = {
   PAID: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
   UNPAID: 'bg-red-500/15 text-red-400 border border-red-500/30',
-  PARTIALLY_PAID: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+  PARTIAL: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
 };
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
@@ -274,7 +274,7 @@ export default function DashboardPage() {
 
             {/* Filter tabs */}
             <div className="flex gap-1 bg-slate-800 rounded-lg p-1 flex-wrap">
-              {(['ALL', 'UNPAID', 'PARTIALLY_PAID', 'PAID'] as StatusFilter[]).map((f) => (
+              {(['ALL', 'UNPAID', 'PARTIAL', 'PAID'] as StatusFilter[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 >
                   {f === 'ALL' ? 'ทั้งหมด' :
                    f === 'UNPAID' ? 'ยังไม่ชำระ' :
-                   f === 'PARTIALLY_PAID' ? 'บางส่วน' : 'ชำระแล้ว'}
+                   f === 'PARTIAL' ? 'บางส่วน' : 'ชำระแล้ว'}
                 </button>
               ))}
             </div>
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-slate-800">
                   {filtered.map((inv) => {
                     const isPaying = payingIds.has(inv.invoiceId);
-                    const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIALLY_PAID';
+                    const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">
