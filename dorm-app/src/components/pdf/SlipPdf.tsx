@@ -11,36 +11,37 @@ import {
 import type { Invoice } from '@/types';
 
 // ─── Thai font registration ───────────────────────────────────────────────────
-// Sarabun is a Google Font with excellent Thai Unicode coverage.
-// We load 3 weights so we can use bold/semibold inside the PDF.
+// Sarabun TTF files are hosted locally under public/fonts/ to avoid GitHub
+// rate limits and external CDN 404 errors.
+//
+// Font.register runs at module load time — which may be in Node.js (SSR/build)
+// OR in the browser. We resolve the correct base path for each context:
+//   • Node.js  → file://{cwd}/public/fonts  (absolute filesystem path)
+//   • Browser  → /fonts                      (Next.js static asset URL)
+
+const fontBase =
+  typeof window === 'undefined'
+    ? `file://${process.cwd()}/public/fonts`
+    : '/fonts';
 
 Font.register({
   family: 'Sarabun',
   fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/sarabun/v13/DtVmJx26TKEr37c9YK5silUs.ttf',
-      fontWeight: 400,
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/sarabun/v13/DtVjJx26TKEr37c9aBBx_nwMxAzephhN.ttf',
-      fontWeight: 600,
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/sarabun/v13/DtVmJx26TKEr37c9YNZcilUs.ttf',
-      fontWeight: 700,
-    },
+    { src: `${fontBase}/Sarabun-Regular.ttf` },
+    { src: `${fontBase}/Sarabun-Bold.ttf`, fontWeight: 'bold' },
   ],
 });
+
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const S = StyleSheet.create({
   page: {
     fontFamily: 'Sarabun',
-    fontSize: 11,
-    paddingTop: 48,
-    paddingBottom: 56,
-    paddingHorizontal: 52,
+    fontSize: 10,
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 36,
     color: '#1a1a2e',
     backgroundColor: '#ffffff',
   },
@@ -50,78 +51,78 @@ const S = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 28,
-    paddingBottom: 18,
-    borderBottomWidth: 2,
+    marginBottom: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#4f46e5',
   },
   dormName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 700,
     color: '#4f46e5',
   },
   dormSubtitle: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#6b7280',
-    marginTop: 3,
+    marginTop: 2,
   },
   docTypeBox: {
     alignItems: 'flex-end',
   },
   docTypeLabel: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: 700,
     color: '#1a1a2e',
   },
   docTypeSubLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#6b7280',
-    marginTop: 2,
+    marginTop: 1,
   },
   invoiceId: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#6b7280',
-    marginTop: 4,
+    marginTop: 2,
   },
 
   // Meta info grid
   metaGrid: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 24,
+    gap: 12,
+    marginBottom: 14,
   },
   metaCard: {
     flex: 1,
     backgroundColor: '#f5f3ff',
-    borderRadius: 6,
-    padding: 12,
-    borderLeftWidth: 3,
+    borderRadius: 4,
+    padding: 8,
+    borderLeftWidth: 2,
     borderLeftColor: '#4f46e5',
   },
   metaLabel: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#6b7280',
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaValue: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
     color: '#1a1a2e',
   },
 
   // Table
   tableContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#4f46e5',
     borderRadius: 4,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     marginBottom: 2,
   },
   tableHeaderCell: {
@@ -131,24 +132,27 @@ const S = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
   tableRowAlt: {
     backgroundColor: '#f9fafb',
   },
-  colDescription: { flex: 3 },
+  colDescription: {
+    paddingLeft: 4,
+    flex: 3,
+  },
   colDetail: { flex: 2, textAlign: 'center' },
   colAmount: { flex: 1.5, textAlign: 'right' },
 
   rowText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#374151',
   },
   arrearsText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#dc2626',
     fontWeight: 600,
   },
@@ -156,33 +160,33 @@ const S = StyleSheet.create({
   // Subtotal separator
   subtotalRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: '#d1d5db',
-    marginTop: 4,
+    marginTop: 2,
   },
-  subtotalLabel: { flex: 3, fontSize: 10, color: '#6b7280' },
-  subtotalValue: { flex: 1.5, textAlign: 'right', fontSize: 10, color: '#6b7280' },
+  subtotalLabel: { flex: 3, fontSize: 9, color: '#6b7280' },
+  subtotalValue: { flex: 1.5, textAlign: 'right', fontSize: 9, color: '#6b7280' },
 
   // Total band
   totalBand: {
     flexDirection: 'row',
     backgroundColor: '#4f46e5',
-    borderRadius: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 10,
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 6,
     alignItems: 'center',
   },
   totalLabel: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: 700,
     color: '#ffffff',
   },
   totalAmount: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     color: '#fde68a',
   },
@@ -190,50 +194,50 @@ const S = StyleSheet.create({
   // Receipt paid stamp
   paidStamp: {
     position: 'absolute',
-    top: 160,
-    right: 52,
-    borderWidth: 3,
+    top: 110,
+    right: 36,
+    borderWidth: 2,
     borderColor: '#16a34a',
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     transform: 'rotate(-12deg)',
   },
   paidStampText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 700,
     color: '#16a34a',
-    letterSpacing: 3,
+    letterSpacing: 2,
   },
 
   // Footer
   footer: {
     position: 'absolute',
-    bottom: 32,
-    left: 52,
-    right: 52,
+    bottom: 16,
+    left: 36,
+    right: 36,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingTop: 10,
+    paddingTop: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   footerText: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#9ca3af',
   },
   signatureBlock: {
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 44,
   },
   signatureLine: {
-    width: 160,
+    width: 130,
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   signatureLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#6b7280',
   },
 });
@@ -288,16 +292,15 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   return (
     <Document
       title={`${titleEN} - ห้อง ${roomNumber} - ${invoice.period}`}
-      author="ระบบจัดการหอพัก"
+      author="หอพักดำรงรักษ์"
       creator="DormAdmin"
     >
-      <Page size="A4" style={S.page}>
+      <Page size={[595.28, 500]} style={S.page}>
 
         {/* ── Header ── */}
         <View style={S.headerRow}>
           <View>
-            <Text style={S.dormName}>ระบบจัดการหอพัก</Text>
-            <Text style={S.dormSubtitle}>Dormitory Management System</Text>
+            <Text style={S.dormName}>หอพักดำรงรักษ์</Text>
           </View>
           <View style={S.docTypeBox}>
             <Text style={S.docTypeLabel}>{titleTH}</Text>
@@ -326,9 +329,9 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
         <View style={S.tableContainer}>
           {/* Table Header */}
           <View style={S.tableHeader}>
-            <Text style={[S.tableHeaderCell, S.colDescription]}>รายการ / Description</Text>
-            <Text style={[S.tableHeaderCell, S.colDetail]}>รายละเอียด / Detail</Text>
-            <Text style={[S.tableHeaderCell, S.colAmount]}>จำนวนเงิน (฿)</Text>
+            <Text style={[S.tableHeaderCell, S.colDescription]}> รายการ / Description</Text>
+            <Text style={[S.tableHeaderCell, S.colDetail]}> รายละเอียด / Detail</Text>
+            <Text style={[S.tableHeaderCell, S.colAmount]}> จำนวนเงิน (฿)</Text>
           </View>
 
           {/* Row: Rent */}
@@ -407,7 +410,7 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
         {/* ── Footer ── */}
         <View style={S.footer}>
           <Text style={S.footerText}>
-            ขอบคุณที่ใช้บริการ | ระบบจัดการหอพัก
+            ขอบคุณที่ใช้บริการ หอพักดำรงรักษ์
           </Text>
           <Text style={S.footerText}>
             สร้างโดย DormAdmin • {new Date().toLocaleDateString('th-TH')}
