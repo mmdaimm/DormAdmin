@@ -66,6 +66,12 @@ export interface Invoice {
   monthlyRent?: number;
   /** Payment status of this invoice. */
   status: 'PAID' | 'UNPAID' | 'PARTIALLY_PAID';
+  /**
+   * Cloudflare R2 public URL of the uploaded PDF bill.
+   * Optional — populated after the client uploads the PDF blob to R2.
+   * Stored in the sheet as column L; used by the LINE push notification.
+   */
+  pdfUrl?: string;
 }
 
 // ─── SettingRate ──────────────────────────────────────────────────────────────

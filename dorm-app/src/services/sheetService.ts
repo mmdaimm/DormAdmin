@@ -118,6 +118,7 @@ function rowToInvoice(row: unknown[]): Invoice {
     totalAmount: parseFloat(row[8] as string) || 0,
     paidAmount: parseFloat(row[9] as string) || 0,
     status: (row[10] as Invoice['status']) ?? 'UNPAID',
+    pdfUrl: row[11] ? String(row[11]).trim() : undefined,
   };
 }
 
@@ -220,6 +221,7 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
     invoiceData.totalAmount,
     invoiceData.paidAmount,
     invoiceData.status,
+    invoiceData.pdfUrl ?? '',
   ];
 
   await sheets.spreadsheets.values.append({

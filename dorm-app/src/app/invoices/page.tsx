@@ -68,6 +68,10 @@ export default function InvoicesPage() {
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState<SubmitResult | null>(null);
 
+  // ── LINE Push state ──────────────────────────────────────────────────────────
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
   // ── Fetch rooms + rates on mount ─────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
@@ -132,6 +136,56 @@ export default function InvoicesPage() {
     setSubmitError('');
 
     try {
+      // 1. Generate PDF Blob programmatically
+      const { pdf } = await import('@react-pdf/renderer');
+      const { SlipPdf } = await import('@/components/pdf/SlipPdf');
+
+      const unitsUsed = curr - selectedRoom.prevMeter;
+      const electricityBill = unitsUsed * rates.electricRate;
+      const waterBill = rates.waterRate;
+      const other = parseFloat(otherBill) || 0;
+      const totalAmount = selectedRoom.monthlyRent + electricityBill + waterBill + other;
+
+      const invoiceId = `INV-${selectedRoom.roomId}-${period}`;
+      const tempInvoice: Invoice = {
+        invoiceId,
+        roomId: selectedRoom.roomId,
+        period,
+        prevMeter: selectedRoom.prevMeter,
+        currMeter: curr,
+        waterBill,
+        otherBill: other,
+        arrears: 0,
+        totalAmount,
+        paidAmount: 0,
+        status: 'UNPAID',
+        monthlyRent: selectedRoom.monthlyRent,
+      };
+
+      const blob = await pdf(
+        <SlipPdf invoice={tempInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
+      ).toBlob();
+
+      // 2. Upload the Blob via FormData
+      const formData = new FormData();
+      formData.append('pdf', blob, `invoice-${selectedRoom.roomNumber}-${Date.now()}.pdf`);
+      formData.append('roomNumber', selectedRoom.roomNumber);
+
+      const uploadRes = await fetch('/api/upload-bill', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error(`อัพโหลด PDF ล้มเหลว (HTTP ${uploadRes.status})`);
+      }
+      
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) {
+        throw new Error(uploadData.error || 'อัพโหลด PDF ล้มเหลว');
+      }
+
+      // 3. Save the full billing data
       const res = await fetch('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,13 +194,12 @@ export default function InvoicesPage() {
           roomNumber: selectedRoom.roomNumber,
           period,
           currMeter: curr,
-          otherBill: parseFloat(otherBill) || 0,
-          lineToken: selectedRoom.lineToken,
+          otherBill: other,
+          pdfUrl: uploadData.url,
         }),
       });
 
       if (!res.ok && res.status !== 409) {
-        // Non-JSON responses (e.g. 502 HTML gateway errors)
         setSubmitError(`เกิดข้อผิดพลาด (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
         return;
       }
@@ -163,8 +216,8 @@ export default function InvoicesPage() {
         roomNumber: selectedRoom.roomNumber,
         electricRate: rates.electricRate,
       });
-    } catch {
-      setSubmitError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setSubmitting(false);
     }
@@ -242,14 +295,52 @@ export default function InvoicesPage() {
               electricRate={result.electricRate}
             />
 
+            {/* Manual LINE Push Button */}
+            <button
+              onClick={async () => {
+                if (isSending || isSent) return;
+                setIsSending(true);
+                try {
+                  const res = await fetch('/api/send-line', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: result.invoice.invoiceId }),
+                  });
+                  if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'ส่ง LINE ล้มเหลว');
+                  }
+                  setIsSending(false);
+                  setIsSent(true);
+                } catch (err: unknown) {
+                  alert(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการส่ง LINE');
+                  setIsSending(false);
+                }
+              }}
+              disabled={isSending || isSent}
+              className={`w-full py-3 px-5 font-semibold rounded-xl transition-all duration-200 mt-3 flex items-center justify-center gap-2
+                ${isSent ? 'bg-emerald-600 text-white cursor-not-allowed' : 
+                  isSending ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 
+                  'bg-[#06C755] hover:bg-[#05b34c] text-white shadow-lg shadow-[#06C755]/30'}`}
+            >
+              {isSent ? '✅ ส่งแจ้งเตือนแล้ว' : isSending ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  ⏳ กำลังส่ง...
+                </>
+              ) : '📢 ส่งแจ้งเตือนผ่าน LINE'}
+            </button>
+
             <button
               onClick={() => {
                 setResult(null);
                 setSelectedRoomId('');
                 setCurrMeter('');
                 setOtherBill('0');
+                setIsSending(false);
+                setIsSent(false);
               }}
-              className="text-slate-500 hover:text-slate-300 text-sm py-2 transition-colors"
+              className="text-slate-500 hover:text-slate-300 text-sm py-2 mt-4 block w-full text-center transition-colors"
             >
               ← ออกบิลห้องถัดไป
             </button>
@@ -404,7 +495,7 @@ export default function InvoicesPage() {
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  บันทึกและส่ง Line Notify
+                  บันทึกข้อมูลและสร้างใบแจ้งหนี้
                 </>
               )}
             </button>

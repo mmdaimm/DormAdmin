@@ -18,6 +18,7 @@ interface CreateInvoiceBody {
   period: string;       // YYYY-MM
   currMeter: number;
   otherBill: number;
+  pdfUrl?: string;
 }
 
 // ─── LINE Messaging API client (lazy singleton) ───────────────────────────────
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { roomId, roomNumber, period, currMeter, otherBill } = body;
+  const { roomId, roomNumber, period, currMeter, otherBill, pdfUrl } = body;
 
   if (!roomId || !roomNumber || !period || currMeter === undefined || otherBill === undefined) {
     return NextResponse.json(
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     totalAmount,
     paidAmount: 0,        // Brand-new invoice — no payment received yet.
     status: 'UNPAID',
+    pdfUrl,
   };
 
   // 7. Persist the invoice ──────────────────────────────────────────────────────
@@ -159,39 +161,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 8. Push LINE Messaging API notification (fire-and-forget, non-blocking) ─────
-  //    Tenant lookup is done AFTER save so invoice creation is never delayed.
-  void (async () => {
-    try {
-      const tenants = await getTenants();
-      const tenant = tenants.find(
-        (t) => t.room_id === roomId && t.status === 'ACTIVE'
-      );
 
-      if (tenant?.lineUserId) {
-        const lineMessage =
-          `📄 แจ้งค่าเช่าห้อง ${roomNumber} ประจำเดือน ${period}\n` +
-          `ยอดรวม: ${totalAmount.toLocaleString('th-TH')} บาท\n\n` +
-          `สามารถโอนเงินและส่งสลิปเข้ามาในแชทนี้ได้เลยค่ะ 😊`;
-
-        try {
-          await getLineClient().pushMessage({
-            to: tenant.lineUserId,
-            messages: [{ type: 'text', text: lineMessage }],
-          });
-        } catch (lineError) {
-          console.error('[LINE Push Failed - Create Invoice]', {
-            invoiceId: invoice.invoiceId,
-            lineUserId: tenant.lineUserId,
-            error: lineError,
-          });
-        }
-      }
-    } catch (tenantFetchError) {
-      // Tenant fetch failure must not surface to the client.
-      console.error('[POST /api/invoices] Failed to fetch tenants for LINE push:', tenantFetchError);
-    }
-  })();
 
   // 9. Return success ───────────────────────────────────────────────────────────
   return NextResponse.json(
