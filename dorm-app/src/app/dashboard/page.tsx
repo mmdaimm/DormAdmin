@@ -106,7 +106,8 @@ export default function DashboardPage() {
   // ── Pay action ───────────────────────────────────────────────────────────────
   const openPaymentModal = (inv: EnrichedInvoice) => {
     setSelectedInvoice(inv);
-    setAmountPaidStr(inv.totalAmount.toString());
+    const grandTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
+    setAmountPaidStr(grandTotal.toString());
   };
 
   const handlePay = async (invoiceId: string, amountPaid: number) => {
@@ -143,7 +144,7 @@ export default function DashboardPage() {
     if (!selectedInvoice) return null;
     
     const amountPaid = parseFloat(amountPaidStr) || 0;
-    const grandTotal = selectedInvoice.totalAmount;
+    const grandTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
     const isOverpaid = amountPaid > grandTotal;
     const isInvalid = amountPaid <= 0;
     const overpaymentAmount = amountPaid - grandTotal;
@@ -363,6 +364,8 @@ export default function DashboardPage() {
                   {filtered.map((inv) => {
                     const isPaying = payingIds.has(inv.invoiceId);
                     const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
+                    const remainingArrears = inv.remainingArrears || 0;
+                    const grandTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">
@@ -374,8 +377,15 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 text-slate-400 font-mono whitespace-nowrap">
                           {inv.period}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-indigo-300 tabular-nums whitespace-nowrap">
-                          ฿ {thb(inv.totalAmount)}
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <div className="font-semibold text-indigo-300 tabular-nums">
+                            ฿ {thb(grandTotal)}
+                          </div>
+                          {remainingArrears > 0 && (
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              (รวมค้างชำระ ฿ {thb(remainingArrears)})
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLE[inv.status]}`}>
