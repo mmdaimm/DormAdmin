@@ -121,8 +121,8 @@ function rowToInvoice(row: unknown[]): Invoice {
     paidAmount: parseFloat(row[9] as string) || 0,
     status: (row[10] as Invoice['status']) ?? 'UNPAID',
     pdfUrl: row[11] ? String(row[11]).trim() : undefined,
-    remainingArrears: row[12] !== undefined && row[12] !== '' ? parseFloat(row[12] as string) : undefined,
-    creditApplied: row[15] !== undefined && row[15] !== '' ? parseFloat(row[15] as string) : undefined,
+    remainingArrears: parseFloat(row[12] as string) || 0,
+    creditApplied: parseFloat(row[15] as string) || 0,
     isNewFormat: row.length >= 14,
   };
 }
@@ -146,15 +146,13 @@ export async function getLastInvoiceByRoom(
 
   const rows = response.data.values ?? [];
 
-  // Iterate in reverse so the first match is the most recent row.
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const row = rows[i];
-    if (String(row[1] ?? '').trim() === roomId) {
-      return rowToInvoice(row);
-    }
-  }
-
-  return null;
+  // Filter for the room, sort by period descending, and return the first match.
+  const roomInvoices = rows
+    .filter((row) => String(row[1] ?? '').trim() === roomId)
+    .map(rowToInvoice)
+    .sort((a, b) => b.period.localeCompare(a.period));
+    
+  return roomInvoices.length > 0 ? roomInvoices[0] : null;
 }
 
 /**
@@ -355,12 +353,40 @@ export async function processPayment(
   
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!J${sheetRow}:M${sheetRow}`,
+    range: `${SHEET_INVOICES}!J${sheetRow}:L${sheetRow}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [[amountPaid, status, existingPdfUrl, arrears]] },
+    requestBody: { values: [[amountPaid, status, existingPdfUrl]] },
   });
 
   const roomId = String(rows[rowIndex][1] ?? '').trim();
+  const currentInvoicePeriod = String(rows[rowIndex][2] ?? '').trim();
+
+  // 6.5. Cascading 'PAID' status to old invoices
+  if (amountPaid >= grandTotal) {
+    const batchUpdates: { range: string; values: string[][] }[] = [];
+    rows.forEach((row, idx) => {
+      if (idx === rowIndex) return; // Skip the current invoice
+      const rRoomId = String(row[1] ?? '').trim();
+      const rPeriod = String(row[2] ?? '').trim();
+      const rStatus = String(row[10] ?? '').trim();
+      if (rRoomId === roomId && (rStatus === 'UNPAID' || rStatus === 'PARTIAL') && rPeriod < currentInvoicePeriod) {
+        batchUpdates.push({
+          range: `${SHEET_INVOICES}!K${idx + 2}`,
+          values: [['PAID']],
+        });
+      }
+    });
+
+    if (batchUpdates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: batchUpdates,
+        },
+      });
+    }
+  }
 
   // 7. CREDIT BALANCE UPDATE
   if (newCredit > 0) {

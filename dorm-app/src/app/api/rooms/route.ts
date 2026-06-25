@@ -32,8 +32,12 @@ export async function GET(): Promise<NextResponse> {
       // element in the filtered array is the newest entry — consistent with
       // the reverse-scan logic previously used in getLastInvoiceByRoom().
       const roomInvoices = allInvoices.filter((inv) => inv.roomId === room.roomId);
+      
+      // Sort by period descending to confidently get the latest invoice
+      roomInvoices.sort((a, b) => b.period.localeCompare(a.period));
+      
       const lastInvoice = roomInvoices.length > 0
-        ? roomInvoices[roomInvoices.length - 1]
+        ? roomInvoices[0]
         : null;
 
       return {

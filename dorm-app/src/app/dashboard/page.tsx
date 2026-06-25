@@ -106,13 +106,9 @@ export default function DashboardPage() {
   // ── Pay action ───────────────────────────────────────────────────────────────
   const openPaymentModal = (inv: EnrichedInvoice) => {
     setSelectedInvoice(inv);
-    let grandTotal = 0;
-    if (inv.status === 'PARTIAL') {
-      grandTotal = inv.remainingArrears || 0;
-    } else {
-      grandTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
-    }
-    setAmountPaidStr(grandTotal.toString());
+    const billedTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
+    const safeRemaining = Math.max(0, billedTotal - (inv.paidAmount || 0));
+    setAmountPaidStr(safeRemaining.toString());
   };
 
   const handlePay = async (invoiceId: string, amountPaid: number) => {
@@ -149,12 +145,9 @@ export default function DashboardPage() {
     if (!selectedInvoice) return null;
     
     const amountPaid = parseFloat(amountPaidStr) || 0;
-    let grandTotal = 0;
-    if (selectedInvoice.status === 'PARTIAL') {
-      grandTotal = selectedInvoice.remainingArrears || 0;
-    } else {
-      grandTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
-    }
+    const billedTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
+    const safeRemaining = Math.max(0, billedTotal - (selectedInvoice.paidAmount || 0));
+    const grandTotal = safeRemaining;
     const isOverpaid = amountPaid > grandTotal;
     const isInvalid = amountPaid <= 0;
     const overpaymentAmount = amountPaid - grandTotal;
@@ -375,12 +368,10 @@ export default function DashboardPage() {
                     const isPaying = payingIds.has(inv.invoiceId);
                     const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
                     const remainingArrears = inv.remainingArrears || 0;
-                    let displayedTotal = 0;
-                    if (inv.status === 'PARTIAL') {
-                      displayedTotal = remainingArrears;
-                    } else {
-                      displayedTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
-                    }
+                    
+                    const billedTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
+                    const safeRemaining = Math.max(0, billedTotal - (inv.paidAmount || 0));
+                    
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">
@@ -394,11 +385,16 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="font-semibold text-indigo-300 tabular-nums">
-                            ฿ {thb(displayedTotal)}
+                            ฿ {thb(billedTotal)}
                           </div>
+                          {inv.status === 'PAID' && (
+                            <div className="text-[10px] text-emerald-400 mt-0.5">
+                              (ชำระครบถ้วน)
+                            </div>
+                          )}
                           {inv.status === 'PARTIAL' && (
-                            <div className="text-[10px] text-slate-500 mt-0.5">
-                              (ค้างชำระส่วนต่าง)
+                            <div className="text-[10px] text-amber-500 mt-0.5">
+                              (ชำระแล้ว ฿{thb(inv.paidAmount || 0)} / ค้างชำระ ฿{thb(safeRemaining)})
                             </div>
                           )}
                           {inv.status === 'UNPAID' && remainingArrears > 0 && (

@@ -67,8 +67,15 @@ export async function GET(): Promise<NextResponse> {
     };
 
     // ── Enriched invoice list (newest period first) ───────────────────────────
-    const enrichedInvoices: EnrichedInvoice[] = allInvoices
-      .slice()
+    const latestInvoicesMap = new Map<string, Invoice>();
+    for (const inv of allInvoices) {
+      const existing = latestInvoicesMap.get(inv.roomId);
+      if (!existing || inv.period > existing.period) {
+        latestInvoicesMap.set(inv.roomId, inv);
+      }
+    }
+
+    const enrichedInvoices: EnrichedInvoice[] = Array.from(latestInvoicesMap.values())
       .sort((a, b) => b.period.localeCompare(a.period))
       .map((inv) => {
         const room = roomById.get(inv.roomId);
