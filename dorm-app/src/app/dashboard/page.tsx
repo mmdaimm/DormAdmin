@@ -106,7 +106,12 @@ export default function DashboardPage() {
   // ── Pay action ───────────────────────────────────────────────────────────────
   const openPaymentModal = (inv: EnrichedInvoice) => {
     setSelectedInvoice(inv);
-    const grandTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
+    let grandTotal = 0;
+    if (inv.status === 'PARTIAL') {
+      grandTotal = inv.remainingArrears || 0;
+    } else {
+      grandTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
+    }
     setAmountPaidStr(grandTotal.toString());
   };
 
@@ -144,7 +149,12 @@ export default function DashboardPage() {
     if (!selectedInvoice) return null;
     
     const amountPaid = parseFloat(amountPaidStr) || 0;
-    const grandTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
+    let grandTotal = 0;
+    if (selectedInvoice.status === 'PARTIAL') {
+      grandTotal = selectedInvoice.remainingArrears || 0;
+    } else {
+      grandTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
+    }
     const isOverpaid = amountPaid > grandTotal;
     const isInvalid = amountPaid <= 0;
     const overpaymentAmount = amountPaid - grandTotal;
@@ -365,7 +375,12 @@ export default function DashboardPage() {
                     const isPaying = payingIds.has(inv.invoiceId);
                     const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
                     const remainingArrears = inv.remainingArrears || 0;
-                    const grandTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
+                    let displayedTotal = 0;
+                    if (inv.status === 'PARTIAL') {
+                      displayedTotal = remainingArrears;
+                    } else {
+                      displayedTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
+                    }
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
                         <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">
@@ -379,11 +394,16 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="font-semibold text-indigo-300 tabular-nums">
-                            ฿ {thb(grandTotal)}
+                            ฿ {thb(displayedTotal)}
                           </div>
-                          {remainingArrears > 0 && (
+                          {inv.status === 'PARTIAL' && (
                             <div className="text-[10px] text-slate-500 mt-0.5">
-                              (รวมค้างชำระ ฿ {thb(remainingArrears)})
+                              (ค้างชำระส่วนต่าง)
+                            </div>
+                          )}
+                          {inv.status === 'UNPAID' && remainingArrears > 0 && (
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              (รวมค้างชำระเก่า ฿{thb(remainingArrears)})
                             </div>
                           )}
                         </td>
