@@ -72,6 +72,10 @@ export default function DashboardPage() {
   // ── Payment state ────────────────────────────────────────────────────────────
   const [payingIds, setPayingIds] = useState<Set<string>>(new Set());
   const [payError, setPayError] = useState('');
+  
+  // ── Payment Modal state ──────────────────────────────────────────────────────
+  const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
+  const [amountPaidStr, setAmountPaidStr] = useState<string>('');
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [filter, setFilter] = useState<StatusFilter>('ALL');
@@ -94,61 +98,37 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line
+    void load();
+  }, [load]);
 
-  // ── Optimistic pay with rollback ─────────────────────────────────────────────
-  const handlePay = async (invoice: EnrichedInvoice) => {
-    const { invoiceId, totalAmount, paidAmount } = invoice;
-    const outstanding = Math.max(0, totalAmount - paidAmount);
+  // ── Pay action ───────────────────────────────────────────────────────────────
+  const openPaymentModal = (inv: EnrichedInvoice) => {
+    setSelectedInvoice(inv);
+    setAmountPaidStr(inv.totalAmount.toString());
+  };
 
-    // Optimistic update: mark paid immediately in local state
+  const handlePay = async (invoiceId: string, amountPaid: number) => {
     setPayingIds((prev) => new Set(prev).add(invoiceId));
     setPayError('');
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.invoiceId === invoiceId ? { ...inv, status: 'PAID' } : inv
-      )
-    );
-    setKpi((prev) =>
-      prev
-        ? {
-            ...prev,
-            unpaidCount: Math.max(0, prev.unpaidCount - 1),
-            totalOutstanding: Math.max(0, prev.totalOutstanding - outstanding),
-          }
-        : prev
-    );
 
     try {
       const res = await fetch('/api/invoices/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceId }),
+        body: JSON.stringify({ invoiceId, amountPaid }),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error ?? `เกิดข้อผิดพลาด (HTTP ${res.status})`);
       }
+      
+      // Reload to get exact updated state (credits, arrears, status) from backend
+      await load();
     } catch (err: unknown) {
-      // ── Rollback on failure ──────────────────────────────────────────────────
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.invoiceId === invoiceId ? { ...inv, status: 'UNPAID' } : inv
-        )
-      );
-      setKpi((prev) =>
-        prev
-          ? {
-              ...prev,
-              unpaidCount: prev.unpaidCount + 1,
-              totalOutstanding: prev.totalOutstanding + outstanding,
-            }
-          : prev
-      );
-      setPayError(
-        err instanceof Error ? err.message : 'บันทึกการชำระเงินไม่สำเร็จ กรุณาลองใหม่'
-      );
+      setPayError(err instanceof Error ? err.message : 'บันทึกการชำระเงินไม่สำเร็จ กรุณาลองใหม่');
     } finally {
       setPayingIds((prev) => {
         const next = new Set(prev);
@@ -156,6 +136,77 @@ export default function DashboardPage() {
         return next;
       });
     }
+  };
+
+  // ── Payment Modal UI ──────────────────────────────────────────────────────────
+  const renderPaymentModal = () => {
+    if (!selectedInvoice) return null;
+    
+    const amountPaid = parseFloat(amountPaidStr) || 0;
+    const grandTotal = selectedInvoice.totalAmount;
+    const isOverpaid = amountPaid > grandTotal;
+    const isInvalid = amountPaid <= 0;
+    const overpaymentAmount = amountPaid - grandTotal;
+
+    const handleConfirm = async () => {
+      if (isInvalid) return;
+      const invId = selectedInvoice.invoiceId;
+      setSelectedInvoice(null);
+      await handlePay(invId, amountPaid);
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <h3 className="text-xl font-bold text-white mb-4">รับชำระเงิน</h3>
+          <p className="text-slate-300 text-sm mb-4">
+            ห้อง {selectedInvoice.roomNumber} ({selectedInvoice.tenantName})<br />
+            ประจำเดือน: {selectedInvoice.period}
+          </p>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-400 mb-1">ยอดรวมสุทธิ</label>
+            <div className="text-2xl font-bold text-indigo-400">฿ {thb(grandTotal)}</div>
+          </div>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-400 mb-1">ยอดชำระ (บาท)</label>
+            <input
+              type="number"
+              value={amountPaidStr}
+              onChange={(e) => setAmountPaidStr(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+            {isOverpaid && (
+              <p className="mt-2 text-sm text-emerald-400 font-medium">
+                ยอดชำระเกิน: ระบบจะบันทึกเงิน {overpaymentAmount} บาท เป็นเครดิตสะสมสำหรับเดือนถัดไป
+              </p>
+            )}
+            {isInvalid && (
+              <p className="mt-2 text-sm text-red-400 font-medium">
+                กรุณากรอกยอดชำระที่มากกว่า 0 บาท
+              </p>
+            )}
+          </div>
+          
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setSelectedInvoice(null)}
+              className="px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 font-medium transition-colors"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={isInvalid}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold transition-colors"
+            >
+              ยืนยันการชำระเงิน
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // ── Filtered invoices ─────────────────────────────────────────────────────────
@@ -334,7 +385,7 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           {canPay ? (
                             <button
-                              onClick={() => handlePay(inv)}
+                              onClick={() => openPaymentModal(inv)}
                               disabled={isPaying}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                                          bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700
@@ -370,6 +421,7 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {renderPaymentModal()}
       </div>
     </div>
   );

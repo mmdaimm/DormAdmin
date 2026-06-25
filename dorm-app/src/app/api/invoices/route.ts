@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { messagingApi } from '@line/bot-sdk';
 import {
   getRates,
   getRooms,
   getAllInvoices,
   calculateArrears,
   saveInvoice,
-  getTenants,
 } from '@/services/sheetService';
+import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import type { Invoice } from '@/types';
 
 // ─── Request body shape ───────────────────────────────────────────────────────
@@ -19,18 +18,6 @@ interface CreateInvoiceBody {
   currMeter: number;
   otherBill: number;
   pdfUrl?: string;
-}
-
-// ─── LINE Messaging API client (lazy singleton) ───────────────────────────────
-
-/**
- * Returns a MessagingApiClient using the channel access token from env.
- * Initialised lazily so missing env vars only error at runtime (not at build).
- */
-function getLineClient(): messagingApi.MessagingApiClient {
-  return new messagingApi.MessagingApiClient({
-    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? '',
-  });
 }
 
 // ─── POST /api/invoices ───────────────────────────────────────────────────────
@@ -138,8 +125,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const waterBill = rates.waterRate;
   const arrears = calculateArrears(lastInvoice);
 
-  const totalAmount =
-    room.monthlyRent + electricityBill + waterBill + otherBill + arrears;
+  const currentMonthTotal = room.monthlyRent + electricityBill + waterBill + otherBill;
+  const preliminaryTotal = currentMonthTotal + arrears;
+  const creditBalance = room.creditBalance ?? 0;
+  
+  const creditApplied = Math.min(preliminaryTotal, creditBalance);
+  const grandTotal = preliminaryTotal - creditApplied;
 
   // 6. Build the invoice object ─────────────────────────────────────────────────
   // Invoice ID: INV-{roomId}-{period} — unique per room per billing period.
@@ -154,10 +145,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     waterBill,
     otherBill,
     arrears,
-    totalAmount,
-    paidAmount: 0,        // Brand-new invoice — no payment received yet.
+    totalAmount: currentMonthTotal, // MUST store ONLY current_month_total
+    paidAmount: 0,
     status: 'UNPAID',
     pdfUrl,
+    creditApplied,
+    isNewFormat: true,
   };
 
   // 7. Persist the invoice ──────────────────────────────────────────────────────
@@ -171,9 +164,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-
-
-  // 9. Return success ───────────────────────────────────────────────────────────
+  // 8. Deduct used credit from the Room
+  if (creditApplied > 0) {
+    try {
+      const roomRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Rooms!A2:F`,
+      });
+      const roomRows = roomRes.data.values ?? [];
+      const roomRowIndex = roomRows.findIndex((r) => String(r[0] ?? '').trim() === roomId);
+      if (roomRowIndex !== -1) {
+        const existingCredit = Math.max(0, parseFloat(String(roomRows[roomRowIndex][4] ?? '')) || 0);
+        const roomSheetRow = roomRowIndex + 2;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `Rooms!E${roomSheetRow}`,
+          valueInputOption: 'RAW',
+          requestBody: { values: [[existingCredit - creditApplied]] },
+        });
+      }
+    } catch (error) {
+      console.error('[POST /api/invoices] Failed to deduct room credit:', error);
+    }
+  }  // 9. Return success ───────────────────────────────────────────────────────────
   return NextResponse.json(
     {
       success: true,
@@ -191,9 +204,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         otherBill: invoice.otherBill,
         arrears: invoice.arrears,
         totalAmount: invoice.totalAmount,
-        paidAmount: invoice.paidAmount,   // ← required by SlipPdf for receipt rendering
-        monthlyRent: room.monthlyRent,    // ← avoids floating-point drift in SlipPdf rent display
+        paidAmount: invoice.paidAmount,
+        monthlyRent: room.monthlyRent,
         status: invoice.status,
+        creditApplied: invoice.creditApplied,
+        isNewFormat: invoice.isNewFormat,
+        grandTotal, // For frontend UI
       },
     },
     { status: 201 }

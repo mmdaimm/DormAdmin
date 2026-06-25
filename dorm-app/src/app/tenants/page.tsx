@@ -119,7 +119,10 @@ export default function TenantsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // eslint-disable-next-line
+    void load();
+  }, [load]);
 
   // ── Build roomId → active tenant map ─────────────────────────────────────────
   // Iterates forward so the LAST active tenant per room wins (newest append).

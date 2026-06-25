@@ -280,11 +280,19 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   const isReceipt = type === 'RECEIPT';
   const unitsUsed = invoice.currMeter - invoice.prevMeter;
   const electricBill = unitsUsed * electricRate;
-  // Use monthlyRent from the invoice directly when available (populated by the API).
-  // Fall back to back-calculation only for invoices loaded from the sheet directly
-  // (where monthlyRent is not stored), with a Math.max(0) guard against drift.
+
+  const currentMonthTotal = invoice.isNewFormat 
+    ? invoice.totalAmount 
+    : invoice.totalAmount - invoice.arrears;
+
   const rent = invoice.monthlyRent ??
-    Math.max(0, invoice.totalAmount - electricBill - invoice.waterBill - invoice.otherBill - invoice.arrears);
+    Math.max(0, currentMonthTotal - electricBill - invoice.waterBill - invoice.otherBill);
+
+  const arrears = invoice.arrears || 0;
+  const creditApplied = invoice.creditApplied || 0;
+  const grandTotal = invoice.isNewFormat
+    ? invoice.totalAmount + arrears - creditApplied
+    : invoice.totalAmount;
 
   const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
   const titleEN = isReceipt ? 'Receipt' : 'Invoice';
@@ -367,28 +375,36 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
           )}
 
           {/* Row: Arrears (conditional) */}
-          {invoice.arrears > 0 && (
+          {arrears > 0 && (
             <View style={S.tableRow}>
               <Text style={[S.arrearsText, S.colDescription]}>ยอดค้างชำระเดือนก่อน</Text>
               <Text style={[S.rowText, S.colDetail]}>—</Text>
-              <Text style={[S.arrearsText, S.colAmount]}>{fmt(invoice.arrears)}</Text>
+              <Text style={[S.arrearsText, S.colAmount]}>{fmt(arrears)}</Text>
+            </View>
+          )}
+
+          {/* Row: Credit (conditional) */}
+          {creditApplied > 0 && (
+            <View style={S.tableRow}>
+              <Text style={[S.rowText, S.colDescription, { color: '#16a34a' }]}>หักเครดิตสะสม</Text>
+              <Text style={[S.rowText, S.colDetail]}>—</Text>
+              <Text style={[S.rowText, S.colAmount, { color: '#16a34a' }]}>-{fmt(creditApplied)}</Text>
             </View>
           )}
 
           {/* Subtotal */}
           <View style={S.subtotalRow}>
             <Text style={[S.subtotalLabel, { flex: 5 }]}>รวมทั้งหมด</Text>
-            <Text style={S.subtotalValue}>{fmt(invoice.totalAmount)}</Text>
+            <Text style={S.subtotalValue}>{fmt(grandTotal)}</Text>
           </View>
         </View>
 
-        {/* ── Total band ── */}
         <View style={S.totalBand}>
           <Text style={S.totalLabel}>
             {isReceipt ? 'ยอดที่ได้รับชำระ' : 'ยอดที่ต้องชำระทั้งหมด'}
           </Text>
           <Text style={S.totalAmount}>
-            ฿ {fmt(isReceipt ? invoice.paidAmount : invoice.totalAmount)}
+            ฿ {fmt(isReceipt ? invoice.paidAmount : grandTotal)}
           </Text>
         </View>
 

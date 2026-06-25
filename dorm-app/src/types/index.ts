@@ -8,6 +8,10 @@ export interface Room {
   monthlyRent: number;
   /** LINE Notify token used to push payment notifications to the tenant. */
   lineToken: string;
+  /** Accumulated overpayment credit available to offset future bills. */
+  creditBalance?: number;
+  /** Deposit amount paid by the tenant. */
+  depositAmount?: number;
 }
 
 // ─── Tenant ───────────────────────────────────────────────────────────────────
@@ -77,6 +81,13 @@ export interface Invoice {
    * Stored in the sheet as column M (Index 12).
    */
   remainingArrears?: number;
+  /**
+   * Credit applied to this invoice.
+   * Stored in the sheet as column P (Index 15).
+   */
+  creditApplied?: number;
+  /** Whether this invoice uses the new format where totalAmount = current_month_total */
+  isNewFormat?: boolean;
 }
 
 // ─── SettingRate ──────────────────────────────────────────────────────────────

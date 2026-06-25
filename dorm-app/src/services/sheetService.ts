@@ -85,7 +85,7 @@ export async function getRates(): Promise<Rates> {
 export async function getRooms(): Promise<Room[]> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_ROOMS}!A2:D`,
+    range: `${SHEET_ROOMS}!A2:F`,
   });
 
   const rows = response.data.values ?? [];
@@ -97,6 +97,8 @@ export async function getRooms(): Promise<Room[]> {
       roomNumber: String(row[1] ?? '').trim(),
       monthlyRent: parseFloat(row[2]) || 0,
       lineToken: String(row[3] ?? '').trim(),
+      creditBalance: Math.max(0, parseFloat(row[4] as string) || 0),
+      depositAmount: parseFloat(row[5] as string) || 0,
     }));
 }
 
@@ -120,6 +122,8 @@ function rowToInvoice(row: unknown[]): Invoice {
     status: (row[10] as Invoice['status']) ?? 'UNPAID',
     pdfUrl: row[11] ? String(row[11]).trim() : undefined,
     remainingArrears: row[12] !== undefined && row[12] !== '' ? parseFloat(row[12] as string) : undefined,
+    creditApplied: row[15] !== undefined && row[15] !== '' ? parseFloat(row[15] as string) : undefined,
+    isNewFormat: row.length >= 14,
   };
 }
 
@@ -137,7 +141,7 @@ export async function getLastInvoiceByRoom(
 ): Promise<Invoice | null> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:M`,
+    range: `${SHEET_INVOICES}!A2:P`,
   });
 
   const rows = response.data.values ?? [];
@@ -164,7 +168,7 @@ export async function getLastInvoiceByRoom(
 export async function getAllInvoices(): Promise<Invoice[]> {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:M`,
+    range: `${SHEET_INVOICES}!A2:P`,
   });
 
   const rows = response.data.values ?? [];
@@ -227,7 +231,10 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
     invoiceData.paidAmount,
     invoiceData.status,
     invoiceData.pdfUrl ?? '',
-    invoiceData.arrears, // Write calculated arrears strictly into Column M (Index 12)
+    invoiceData.arrears, // Column M (Index 12)
+    '',                  // Column N (Index 13) - discount_amount
+    '',                  // Column O (Index 14) - prorated_amount
+    invoiceData.creditApplied ?? 0, // Column P (Index 15)
   ];
 
   await sheets.spreadsheets.values.append({
@@ -290,13 +297,14 @@ export async function getTenants(): Promise<Tenant[]> {
  *
  * @throws {Error} If the invoice is not found or is already PAID.
  */
-export async function markInvoicePaid(
-  invoiceId: string
-): Promise<{ roomId: string; totalAmount: number }> {
+export async function processPayment(
+  invoiceId: string,
+  amountPaid: number
+): Promise<{ roomId: string; totalAmount: number; newCredit: number }> {
   // 1. Fetch full Invoices sheet to locate the row and verify live status.
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!A2:M`,
+    range: `${SHEET_INVOICES}!A2:P`,
   });
 
   const rows = response.data.values ?? [];
@@ -314,23 +322,70 @@ export async function markInvoicePaid(
     throw new Error(`ใบแจ้งหนี้ "${invoiceId}" ถูกบันทึกว่าชำระแล้ว`);
   }
 
-  // 3. Extract fields needed by the caller — reuse data already in memory.
-  //    Invoices column layout: B=roomId (index 1), I=totalAmount (index 8)
-  const roomId     = String(rows[rowIndex][1] ?? '').trim();
-  const totalAmount = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;
+  // 3. Securely parse existing values
+  const existingTotalAmount = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;
+  const existingArrears = parseFloat(String(rows[rowIndex][12] ?? '')) || 0;
+  const existingCreditApplied = parseFloat(String(rows[rowIndex][15] ?? '')) || 0;
 
-  // 4. Row 1 is the header; data starts at row 2 → sheet row = rowIndex + 2.
+  // 4. Calculate actual payable
+  const grandTotal = (existingTotalAmount + existingArrears) - existingCreditApplied;
+
+  // 5. Evaluate amountPaid against grandTotal
+  let status = '';
+  let arrears = 0;
+  let newCredit = 0;
+
+  if (amountPaid === grandTotal) {
+    status = 'PAID';
+    arrears = 0;
+    newCredit = 0;
+  } else if (amountPaid < grandTotal) {
+    status = 'PARTIAL';
+    arrears = grandTotal - amountPaid;
+    newCredit = 0;
+  } else if (amountPaid > grandTotal) {
+    status = 'PAID';
+    arrears = 0;
+    newCredit = amountPaid - grandTotal;
+  }
+
+  // 6. Update invoices tab
   const sheetRow = rowIndex + 2;
-
+  const existingPdfUrl = String(rows[rowIndex][11] ?? '');
+  
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    // Target column K only — leaves all other columns untouched.
-    range: `${SHEET_INVOICES}!K${sheetRow}`,
+    range: `${SHEET_INVOICES}!J${sheetRow}:M${sheetRow}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [['PAID']] },
+    requestBody: { values: [[amountPaid, status, existingPdfUrl, arrears]] },
   });
 
-  return { roomId, totalAmount };
+  const roomId = String(rows[rowIndex][1] ?? '').trim();
+
+  // 7. CREDIT BALANCE UPDATE
+  if (newCredit > 0) {
+    const roomRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_ROOMS}!A2:F`,
+    });
+    
+    const roomRows = roomRes.data.values ?? [];
+    const roomRowIndex = roomRows.findIndex((r) => String(r[0] ?? '').trim() === roomId);
+    
+    if (roomRowIndex !== -1) {
+      const existing_credit = Math.max(0, parseFloat(String(roomRows[roomRowIndex][4] ?? '')) || 0);
+      const roomSheetRow = roomRowIndex + 2;
+      
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_ROOMS}!E${roomSheetRow}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[existing_credit + newCredit]] },
+      });
+    }
+  }
+
+  return { roomId, totalAmount: grandTotal, newCredit };
 }
 
 /**
