@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import type { Invoice } from '@/types';
+import type { Invoice, Tenant } from '@/types';
 import type { Rates } from '@/services/sheetService';
 
 // ── PDF layer: fully quarantined from SSR ────────────────────────────────────
@@ -54,6 +54,7 @@ export default function InvoicesPage() {
   // ── Server data ──────────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<RoomWithMeta[]>([]);
   const [rates, setRates] = useState<Rates>({ electricRate: 5, waterRate: 80 });
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState('');
 
@@ -76,19 +77,23 @@ export default function InvoicesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [roomsRes, ratesRes] = await Promise.all([
+        const [roomsRes, ratesRes, tenantsRes] = await Promise.all([
           fetch('/api/rooms'),
           fetch('/api/settings'),
+          fetch('/api/tenants'),
         ]);
 
         if (!roomsRes.ok) throw new Error(`โหลดข้อมูลห้องล้มเหลว (${roomsRes.status})`);
         if (!ratesRes.ok) throw new Error(`โหลดอัตราค่าบริการล้มเหลว (${ratesRes.status})`);
+        if (!tenantsRes.ok) throw new Error(`โหลดข้อมูลผู้เช่าล้มเหลว (${tenantsRes.status})`);
 
         const roomsData = await roomsRes.json();
         const ratesData = await ratesRes.json();
+        const tenantsData = await tenantsRes.json();
 
         if (roomsData.success) setRooms(roomsData.rooms);
         if (ratesData.success) setRates(ratesData.rates);
+        if (tenantsData.success) setTenants(tenantsData.tenants);
       } catch (err: unknown) {
         setDataError(
           err instanceof Error ? err.message : 'ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ'
@@ -106,6 +111,36 @@ export default function InvoicesPage() {
     [rooms, selectedRoomId]
   );
 
+  const selectedTenant = useMemo(() => {
+    if (!selectedRoomId) return null;
+    return tenants.find(t => (t.room_id === selectedRoomId) && t.status === 'ACTIVE') || null;
+  }, [selectedRoomId, tenants]);
+
+  const isActiveTenant = !!selectedTenant;
+
+  // ── Auto Pro-rate Calculation ────────────────────────────────────────────────
+  const proratedAmount = useMemo(() => {
+    if (!selectedRoom || !selectedTenant) return 0;
+    
+    const baseRent = selectedRoom.monthlyRent || 0;
+    const entryDate = selectedTenant.entryDate || (selectedTenant as any).entry_date;
+    
+    if (entryDate && typeof entryDate === 'string' && entryDate.startsWith(period)) {
+      const year = parseInt(period.split('-')[0], 10);
+      const month = parseInt(period.split('-')[1], 10);
+      
+      const totalDays = new Date(year, month, 0).getDate();
+      const moveInDay = parseInt(entryDate.split('-')[2], 10);
+      
+      if (!isNaN(moveInDay) && moveInDay > 1 && moveInDay <= totalDays) {
+        const daysStayed = (totalDays - moveInDay + 1);
+        const actualProratedRent = Math.round((baseRent / totalDays) * daysStayed);
+        return baseRent - actualProratedRent;
+      }
+    }
+    return 0;
+  }, [selectedRoom, selectedTenant, period]);
+
   // ── Live calculation ─────────────────────────────────────────────────────────
   const calc = useMemo(() => {
     if (!selectedRoom) return null;
@@ -115,9 +150,9 @@ export default function InvoicesPage() {
     const elec = units * rates.electricRate;
     const water = rates.waterRate;
 
-    const total = selectedRoom.monthlyRent + elec + water + other;
+    const total = selectedRoom.monthlyRent - proratedAmount + elec + water + other;
     return { units, elec, water, other, total };
-  }, [selectedRoom, currMeter, otherBill, rates]);
+  }, [selectedRoom, currMeter, otherBill, rates, proratedAmount]);
 
   // ── Submit handler ───────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,6 +231,7 @@ export default function InvoicesPage() {
           currMeter: curr,
           otherBill: other,
           pdfUrl: uploadData.url,
+          proratedAmount,
         }),
       });
 
@@ -424,6 +460,18 @@ export default function InvoicesPage() {
               />
             </div>
 
+            {/* Tenant Status Section */}
+            {selectedRoomId && isActiveTenant && (
+              <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-xl px-4 py-3 text-emerald-300 text-sm">
+                ข้อมูลผู้เช่าปัจจุบัน: {selectedTenant?.firstname} {selectedTenant?.lastname} (ACTIVE)
+              </div>
+            )}
+            {selectedRoomId && !isActiveTenant && (
+              <div className="bg-red-950/40 border border-red-800/60 rounded-xl px-4 py-3 text-red-300 text-sm">
+                ห้องว่าง (ไม่มีผู้เช่าที่สถานะ ACTIVE)
+              </div>
+            )}
+
             {/* Meter readings — shown only when room selected */}
             {selectedRoom && (
               <div className="grid grid-cols-2 gap-4">
@@ -480,25 +528,27 @@ export default function InvoicesPage() {
             )}
 
             {/* Submit button */}
-            <button
-              type="submit"
-              disabled={submitting || !selectedRoomId || !currMeter}
-              className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40 disabled:shadow-none disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  กำลังบันทึก…
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  บันทึกข้อมูลและสร้างใบแจ้งหนี้
-                </>
-              )}
-            </button>
+            <div title={(selectedRoomId && !isActiveTenant) ? "ไม่สามารถสร้างใบแจ้งหนี้ได้เนื่องจากห้องไม่มีผู้เช่าสถานะ ACTIVE" : undefined}>
+              <button
+                type="submit"
+                disabled={submitting || !selectedRoomId || !currMeter || Boolean(selectedRoomId && !isActiveTenant)}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    กำลังบันทึก…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    บันทึกข้อมูลและสร้างใบแจ้งหนี้
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
           {/* ── RIGHT: Live calculation preview ────────────────────────────────── */}
@@ -517,6 +567,9 @@ export default function InvoicesPage() {
                   {/* Line items */}
                   {[
                     { label: 'ค่าเช่าห้อง', value: selectedRoom.monthlyRent, color: 'text-slate-200' },
+                    ...(proratedAmount > 0 
+                      ? [{ label: 'ส่วนลดเข้าพักระหว่างเดือน', value: -proratedAmount, color: 'text-emerald-400' }]
+                      : []),
                     {
                       label: `ค่าไฟ (${calc.units} หน่วย × ${rates.electricRate} ฿)`,
                       value: calc.elec,

@@ -285,8 +285,10 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
     ? invoice.totalAmount 
     : invoice.totalAmount - invoice.arrears;
 
+  const finalProratedAmount = invoice.proratedAmount || (invoice as any).prorated_amount || 0;
+
   const rent = invoice.monthlyRent ??
-    Math.max(0, currentMonthTotal - electricBill - invoice.waterBill - invoice.otherBill);
+    Math.max(0, currentMonthTotal - electricBill - invoice.waterBill - invoice.otherBill + finalProratedAmount);
 
   const arrears = invoice.arrears || 0;
   const creditApplied = invoice.creditApplied || 0;
@@ -348,6 +350,15 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
             <Text style={[S.rowText, S.colDetail]}>—</Text>
             <Text style={[S.rowText, S.colAmount]}>{fmt(rent)}</Text>
           </View>
+
+          {/* Row: Prorate (conditional) */}
+          {finalProratedAmount > 0 && (
+            <View style={S.tableRow}>
+              <Text style={[S.rowText, S.colDescription, { color: '#16a34a' }]}>ส่วนลดจากการเข้าพักไม่เต็มเดือน (Pro-rate)</Text>
+              <Text style={[S.rowText, S.colDetail]}>—</Text>
+              <Text style={[S.rowText, S.colAmount, { color: '#16a34a' }]}>-{fmt(finalProratedAmount)}</Text>
+            </View>
+          )}
 
           {/* Row: Electricity */}
           <View style={[S.tableRow, S.tableRowAlt]}>

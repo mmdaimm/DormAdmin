@@ -18,6 +18,7 @@ interface CreateInvoiceBody {
   currMeter: number;
   otherBill: number;
   pdfUrl?: string;
+  proratedAmount?: number;
 }
 
 // ─── POST /api/invoices ───────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { roomId, roomNumber, period, currMeter, otherBill, pdfUrl } = body;
+  const { roomId, roomNumber, period, currMeter, otherBill, pdfUrl, proratedAmount = 0 } = body;
 
   if (!roomId || !roomNumber || !period || currMeter === undefined || otherBill === undefined) {
     return NextResponse.json(
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const waterBill = rates.waterRate;
   const arrears = calculateArrears(lastInvoice);
 
-  const currentMonthTotal = room.monthlyRent + electricityBill + waterBill + otherBill;
+  const currentMonthTotal = (room.monthlyRent - proratedAmount) + electricityBill + waterBill + otherBill;
   const preliminaryTotal = currentMonthTotal + arrears;
   const creditBalance = room.creditBalance ?? 0;
   
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     pdfUrl,
     creditApplied,
     isNewFormat: true,
+    proratedAmount,
   };
 
   // 7. Persist the invoice ──────────────────────────────────────────────────────
@@ -209,6 +211,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         status: invoice.status,
         creditApplied: invoice.creditApplied,
         isNewFormat: invoice.isNewFormat,
+        proratedAmount: invoice.proratedAmount,
         grandTotal, // For frontend UI
       },
     },

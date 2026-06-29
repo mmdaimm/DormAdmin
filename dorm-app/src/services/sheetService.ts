@@ -124,6 +124,7 @@ function rowToInvoice(row: unknown[]): Invoice {
     remainingArrears: parseFloat(row[12] as string) || 0,
     creditApplied: parseFloat(row[15] as string) || 0,
     isNewFormat: row.length >= 14,
+    proratedAmount: row[14] ? parseFloat(row[14] as string) : 0,
   };
 }
 
@@ -231,7 +232,7 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
     invoiceData.pdfUrl ?? '',
     invoiceData.arrears, // Column M (Index 12)
     '',                  // Column N (Index 13) - discount_amount
-    '',                  // Column O (Index 14) - prorated_amount
+    invoiceData.proratedAmount || 0, // Column O (Index 14) - prorated_amount
     invoiceData.creditApplied ?? 0, // Column P (Index 15)
   ];
 

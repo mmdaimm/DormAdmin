@@ -88,6 +88,8 @@ export interface Invoice {
   creditApplied?: number;
   /** Whether this invoice uses the new format where totalAmount = current_month_total */
   isNewFormat?: boolean;
+  /** Pro-rated discount amount for tenants moving in mid-month (Baht). */
+  proratedAmount?: number;
 }
 
 // ─── SettingRate ──────────────────────────────────────────────────────────────
