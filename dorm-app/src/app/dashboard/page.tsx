@@ -367,10 +367,10 @@ export default function DashboardPage() {
                   {filtered.map((inv) => {
                     const isPaying = payingIds.has(inv.invoiceId);
                     const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
-                    const remainingArrears = inv.remainingArrears || 0;
-                    
-                    const billedTotal = (inv.totalAmount || 0) + remainingArrears - (inv.creditApplied || 0);
-                    const safeRemaining = Math.max(0, billedTotal - (inv.paidAmount || 0));
+                    const grandTotal = (inv.totalAmount || (inv as any).total_amount || 0) 
+                                     + (inv.arrears || 0) 
+                                     - (inv.creditApplied || (inv as any).credit_applied || 0);
+                    const safeRemaining = Math.max(0, grandTotal - (inv.paidAmount || (inv as any).paid_amount || 0));
                     
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="font-semibold text-indigo-300 tabular-nums">
-                            ฿ {thb(billedTotal)}
+                            ฿ {thb(grandTotal)}
                           </div>
                           {inv.status === 'PAID' && (
                             <div className="text-[10px] text-emerald-400 mt-0.5">
@@ -394,12 +394,12 @@ export default function DashboardPage() {
                           )}
                           {inv.status === 'PARTIAL' && (
                             <div className="text-[10px] text-amber-500 mt-0.5">
-                              (ชำระแล้ว ฿{thb(inv.paidAmount || 0)} / ค้างชำระ ฿{thb(safeRemaining)})
+                              (ชำระแล้ว ฿{thb(inv.paidAmount || (inv as any).paid_amount || 0)} / ค้างชำระ ฿{thb(safeRemaining)})
                             </div>
                           )}
-                          {inv.status === 'UNPAID' && remainingArrears > 0 && (
+                          {inv.status === 'UNPAID' && (inv.arrears || 0) > 0 && (
                             <div className="text-[10px] text-slate-500 mt-0.5">
-                              (รวมค้างชำระเก่า ฿{thb(remainingArrears)})
+                              (รวมค้างชำระเก่า ฿{thb(inv.arrears || 0)})
                             </div>
                           )}
                         </td>

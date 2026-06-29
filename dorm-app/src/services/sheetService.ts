@@ -191,15 +191,12 @@ export function calculateArrears(lastInvoice: Invoice | null): number {
 
   switch (lastInvoice.status) {
     case 'UNPAID':
+      // ไม่ได้จ่ายเลย — ยกยอด total_amount ทั้งก้อน
       return lastInvoice.totalAmount;
 
     case 'PARTIAL':
-    case 'PARTIAL': // Support both string literal variations
-      // Use the new Column M (remainingArrears) if available, otherwise fallback
-      if (lastInvoice.remainingArrears !== undefined) {
-        return lastInvoice.remainingArrears;
-      }
-      return Math.max(0, lastInvoice.totalAmount - lastInvoice.paidAmount);
+      // จ่ายบางส่วน — ยกเฉพาะยอดที่ค้างอยู่จาก Column H
+      return lastInvoice.arrears;
 
     case 'PAID':
     default:
@@ -218,22 +215,22 @@ export function calculateArrears(lastInvoice: Invoice | null): number {
  */
 export async function saveInvoice(invoiceData: Invoice): Promise<void> {
   const row = [
-    invoiceData.invoiceId,
-    invoiceData.roomId,
-    invoiceData.period,
-    invoiceData.prevMeter,
-    invoiceData.currMeter,
-    invoiceData.waterBill,
-    invoiceData.otherBill,
-    invoiceData.arrears,
-    invoiceData.totalAmount,
-    invoiceData.paidAmount,
-    invoiceData.status,
-    invoiceData.pdfUrl ?? '',
-    invoiceData.arrears, // Column M (Index 12)
-    '',                  // Column N (Index 13) - discount_amount
-    invoiceData.proratedAmount || 0, // Column O (Index 14) - prorated_amount
-    invoiceData.creditApplied ?? 0, // Column P (Index 15)
+    invoiceData.invoiceId,           // A (Index 0)
+    invoiceData.roomId,              // B (Index 1)
+    invoiceData.period,              // C (Index 2)
+    invoiceData.prevMeter,           // D (Index 3)
+    invoiceData.currMeter,           // E (Index 4)
+    invoiceData.waterBill,           // F (Index 5)
+    invoiceData.otherBill,           // G (Index 6)
+    invoiceData.arrears,             // H (Index 7) ← arrears carry-over
+    invoiceData.totalAmount,         // I (Index 8) ← current month ONLY
+    0,                               // J (Index 9) paid_amount = 0
+    'UNPAID',                        // K (Index 10) status
+    invoiceData.pdfUrl ?? '',        // L (Index 11) url_invoice = preserve URL
+    invoiceData.arrears,             // M (Index 12) ← old_arrears = snapshot of H
+    '',                              // N (Index 13) discount_amount
+    invoiceData.proratedAmount || 0, // O (Index 14) prorated_amount
+    invoiceData.creditApplied ?? 0,  // P (Index 15)
   ];
 
   await sheets.spreadsheets.values.append({
@@ -322,48 +319,45 @@ export async function processPayment(
   }
 
   // 3. Securely parse existing values
-  const existingTotalAmount = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;
-  const existingArrears = parseFloat(String(rows[rowIndex][12] ?? '')) || 0;
-  const existingCreditApplied = parseFloat(String(rows[rowIndex][15] ?? '')) || 0;
+  const totalAmount    = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;  // I
+  const arrearsOnBill  = parseFloat(String(rows[rowIndex][7] ?? '')) || 0;  // H
+  const creditApplied  = parseFloat(String(rows[rowIndex][15] ?? '')) || 0; // P
+  const existingPaid   = parseFloat(String(rows[rowIndex][9] ?? '')) || 0;  // J
+  const existingUrl    = String(rows[rowIndex][11] ?? '');                  // L
 
   // 4. Calculate actual payable
-  const grandTotal = (existingTotalAmount + existingArrears) - existingCreditApplied;
+  const grandTotal = totalAmount + arrearsOnBill - creditApplied;
 
   // 5. Evaluate amountPaid against grandTotal
-  let status = '';
-  let arrears = 0;
-  let newCredit = 0;
+  const cumulativePaid = existingPaid + amountPaid;
+  const newRemainingArrears = Math.max(0, grandTotal - cumulativePaid);
+  const newCredit = Math.max(0, cumulativePaid - grandTotal);
 
-  if (amountPaid === grandTotal) {
-    status = 'PAID';
-    arrears = 0;
-    newCredit = 0;
-  } else if (amountPaid < grandTotal) {
-    status = 'PARTIAL';
-    arrears = grandTotal - amountPaid;
-    newCredit = 0;
-  } else if (amountPaid > grandTotal) {
-    status = 'PAID';
-    arrears = 0;
-    newCredit = amountPaid - grandTotal;
-  }
+  const newStatus = cumulativePaid >= grandTotal ? 'PAID' : 'PARTIAL';
 
   // 6. Update invoices tab
   const sheetRow = rowIndex + 2;
-  const existingPdfUrl = String(rows[rowIndex][11] ?? '');
   
+  const updateValues = [[
+    newRemainingArrears, // H (Index 7)
+    totalAmount,         // I (Index 8)
+    cumulativePaid,      // J (Index 9)
+    newStatus,           // K (Index 10)
+    existingUrl,         // L (Index 11)
+  ]];
+
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_INVOICES}!J${sheetRow}:L${sheetRow}`,
+    range: `${SHEET_INVOICES}!H${sheetRow}:L${sheetRow}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [[amountPaid, status, existingPdfUrl]] },
+    requestBody: { values: updateValues },
   });
 
   const roomId = String(rows[rowIndex][1] ?? '').trim();
   const currentInvoicePeriod = String(rows[rowIndex][2] ?? '').trim();
 
   // 6.5. Cascading 'PAID' status to old invoices
-  if (amountPaid >= grandTotal) {
+  if (newStatus === 'PAID') {
     const batchUpdates: { range: string; values: string[][] }[] = [];
     rows.forEach((row, idx) => {
       if (idx === rowIndex) return; // Skip the current invoice
