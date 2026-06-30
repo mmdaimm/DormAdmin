@@ -31,7 +31,7 @@ export async function GET(): Promise<NextResponse> {
       // getAllInvoices() preserves sheet row order (top-to-bottom), so the last
       // element in the filtered array is the newest entry — consistent with
       // the reverse-scan logic previously used in getLastInvoiceByRoom().
-      const roomInvoices = allInvoices.filter((inv) => inv.roomId === room.roomId);
+      const roomInvoices = allInvoices.filter((inv) => inv.roomId === room.roomId && inv.status !== 'CANCELLED' as any && inv.status !== 'VOID' as any);
       
       // Sort by period descending to confidently get the latest invoice
       roomInvoices.sort((a, b) => b.period.localeCompare(a.period));
@@ -42,7 +42,7 @@ export async function GET(): Promise<NextResponse> {
 
       return {
         ...room,
-        prevMeter: lastInvoice?.currMeter ?? 0,
+        prevMeter: lastInvoice ? (parseFloat(lastInvoice.currMeter as any ?? (lastInvoice as any).curr_meter ?? 0) || 0) : 0,
         lastStatus: lastInvoice?.status ?? null,
       };
     });

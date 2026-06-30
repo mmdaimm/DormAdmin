@@ -367,10 +367,13 @@ export default function DashboardPage() {
                   {filtered.map((inv) => {
                     const isPaying = payingIds.has(inv.invoiceId);
                     const canPay = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
-                    const grandTotal = (inv.totalAmount || (inv as any).total_amount || 0) 
-                                     + (inv.arrears || 0) 
-                                     - (inv.creditApplied || (inv as any).credit_applied || 0);
-                    const safeRemaining = Math.max(0, grandTotal - (inv.paidAmount || (inv as any).paid_amount || 0));
+                    const baseTotal = parseFloat(inv.totalAmount as any ?? (inv as any).total_amount ?? 0) || 0;
+                    const immutableOldArrears = parseFloat(inv.remainingArrears as any ?? (inv as any).old_arrears ?? (inv as any).oldArrears ?? 0) || 0;
+                    const credit = parseFloat(inv.creditApplied as any ?? (inv as any).credit_applied ?? 0) || 0;
+                    
+                    const immutableGrandTotal = baseTotal + immutableOldArrears - credit;
+                    const paid = parseFloat(inv.paidAmount as any ?? (inv as any).paid_amount ?? 0) || 0;
+                    const safeRemaining = Math.max(0, immutableGrandTotal - paid);
                     
                     return (
                       <tr key={inv.invoiceId} className="hover:bg-slate-800/40 transition-colors">
@@ -385,7 +388,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="font-semibold text-indigo-300 tabular-nums">
-                            ฿ {thb(grandTotal)}
+                            ฿ {thb(immutableGrandTotal)}
                           </div>
                           {inv.status === 'PAID' && (
                             <div className="text-[10px] text-emerald-400 mt-0.5">
@@ -394,12 +397,12 @@ export default function DashboardPage() {
                           )}
                           {inv.status === 'PARTIAL' && (
                             <div className="text-[10px] text-amber-500 mt-0.5">
-                              (ชำระแล้ว ฿{thb(inv.paidAmount || (inv as any).paid_amount || 0)} / ค้างชำระ ฿{thb(safeRemaining)})
+                              (ชำระแล้ว ฿{thb(paid)} / ค้างชำระ ฿{thb(safeRemaining)})
                             </div>
                           )}
-                          {inv.status === 'UNPAID' && (inv.arrears || 0) > 0 && (
+                          {inv.status === 'UNPAID' && immutableOldArrears > 0 && (
                             <div className="text-[10px] text-slate-500 mt-0.5">
-                              (รวมค้างชำระเก่า ฿{thb(inv.arrears || 0)})
+                              (รวมค้างชำระเก่า ฿{thb(immutableOldArrears)})
                             </div>
                           )}
                         </td>

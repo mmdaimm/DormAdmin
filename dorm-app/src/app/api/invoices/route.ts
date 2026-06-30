@@ -102,13 +102,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 3b. Find the "Previous Invoice" (Sort by period DESC, NOT current period) ──
   const previousInvoices = roomInvoices
-    .filter(inv => inv.period !== period)
+    .filter(inv => inv.period !== period && inv.status !== 'CANCELLED' as any && inv.status !== 'VOID' as any)
     .sort((a, b) => b.period.localeCompare(a.period));
     
   const lastInvoice = previousInvoices.length > 0 ? previousInvoices[0] : null;
 
   // 4. Resolve previous meter reading ──────────────────────────────────────────
-  const prevMeter = lastInvoice?.currMeter ?? 0;
+  const prevMeter = lastInvoice ? (parseFloat(lastInvoice.currMeter as any ?? (lastInvoice as any).curr_meter ?? 0) || 0) : 0;
 
   if (currMeter < prevMeter) {
     return NextResponse.json(
