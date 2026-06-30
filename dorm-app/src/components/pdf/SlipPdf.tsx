@@ -290,11 +290,13 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   const rent = invoice.monthlyRent ??
     Math.max(0, currentMonthTotal - electricBill - invoice.waterBill - invoice.otherBill + finalProratedAmount);
 
-  const arrears = invoice.arrears || 0;
-  const creditApplied = invoice.creditApplied || 0;
+  const previousArrears = parseFloat(invoice.remainingArrears as any ?? (invoice as any).old_arrears ?? (invoice as any).oldArrears ?? 0) || 0;
+  const creditApplied = parseFloat(invoice.creditApplied as any ?? (invoice as any).credit_applied ?? 0) || 0;
+  const baseTotal = parseFloat(invoice.totalAmount as any ?? (invoice as any).total_amount ?? 0) || 0;
+  
   const grandTotal = invoice.isNewFormat
-    ? invoice.totalAmount + arrears - creditApplied
-    : invoice.totalAmount;
+    ? baseTotal + previousArrears - creditApplied
+    : baseTotal;
 
   const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
   const titleEN = isReceipt ? 'Receipt' : 'Invoice';
@@ -386,11 +388,11 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
           )}
 
           {/* Row: Arrears (conditional) */}
-          {arrears > 0 && (
+          {previousArrears > 0 && (
             <View style={S.tableRow}>
               <Text style={[S.arrearsText, S.colDescription]}>ยอดค้างชำระเดือนก่อน</Text>
               <Text style={[S.rowText, S.colDetail]}>—</Text>
-              <Text style={[S.arrearsText, S.colAmount]}>{fmt(arrears)}</Text>
+              <Text style={[S.arrearsText, S.colAmount]}>{fmt(previousArrears)}</Text>
             </View>
           )}
 

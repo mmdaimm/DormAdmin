@@ -54,10 +54,28 @@ export async function GET(): Promise<NextResponse> {
       (inv) => inv.status === 'UNPAID' || inv.status === 'PARTIAL'
     );
     const unpaidCount = openInvoices.length;
-    const totalOutstanding = openInvoices.reduce(
-      (sum, inv) => sum + Math.max(0, inv.totalAmount - inv.paidAmount),
-      0
-    );
+    const latestInvoicesMap = new Map<string, Invoice>();
+    for (const inv of allInvoices) {
+      const roomId = inv.roomId ?? (inv as any).room_id;
+      const existing = latestInvoicesMap.get(roomId);
+      if (!existing || inv.period > existing.period) {
+        latestInvoicesMap.set(roomId, inv);
+      }
+    }
+    const latestInvoices = Array.from(latestInvoicesMap.values());
+
+    let totalOutstanding = 0;
+    latestInvoices.forEach(inv => {
+      const baseTotal = parseFloat(inv.totalAmount as any ?? (inv as any).total_amount ?? 0) || 0;
+      const oldArrears = parseFloat(inv.remainingArrears as any ?? (inv as any).old_arrears ?? (inv as any).oldArrears ?? 0) || 0;
+      const credit = parseFloat(inv.creditApplied as any ?? (inv as any).credit_applied ?? 0) || 0;
+      const paid = parseFloat(inv.paidAmount as any ?? (inv as any).paid_amount ?? 0) || 0;
+      
+      const grandTotal = baseTotal + oldArrears - credit;
+      const remaining = Math.max(0, grandTotal - paid);
+      
+      totalOutstanding += remaining;
+    });
 
     const kpi: DashboardKpi = {
       totalRooms: rooms.length,
@@ -66,16 +84,10 @@ export async function GET(): Promise<NextResponse> {
       totalOutstanding,
     };
 
-    // ── Enriched invoice list (newest period first) ───────────────────────────
-    const latestInvoicesMap = new Map<string, Invoice>();
-    for (const inv of allInvoices) {
-      const existing = latestInvoicesMap.get(inv.roomId);
-      if (!existing || inv.period > existing.period) {
-        latestInvoicesMap.set(inv.roomId, inv);
-      }
-    }
+    // (Grouping is already done above for totalOutstanding, so we just use latestInvoices)
+    const latestInvoicesForEnrichment = latestInvoices;
 
-    const enrichedInvoices: EnrichedInvoice[] = Array.from(latestInvoicesMap.values())
+    const enrichedInvoices: EnrichedInvoice[] = latestInvoicesForEnrichment
       .sort((a, b) => b.period.localeCompare(a.period))
       .map((inv) => {
         const room = roomById.get(inv.roomId);
