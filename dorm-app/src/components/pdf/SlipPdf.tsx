@@ -283,20 +283,18 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
 
   const currentMonthTotal = invoice.isNewFormat 
     ? invoice.totalAmount 
-    : invoice.totalAmount - invoice.arrears;
+    : invoice.totalAmount - (invoice.arrears || 0);
 
   const finalProratedAmount = invoice.proratedAmount || (invoice as any).prorated_amount || 0;
 
   const rent = invoice.monthlyRent ??
     Math.max(0, currentMonthTotal - electricBill - invoice.waterBill - invoice.otherBill + finalProratedAmount);
 
-  const previousArrears = parseFloat(invoice.remainingArrears as any ?? (invoice as any).old_arrears ?? (invoice as any).oldArrears ?? 0) || 0;
-  const creditApplied = parseFloat(invoice.creditApplied as any ?? (invoice as any).credit_applied ?? 0) || 0;
-  const baseTotal = parseFloat(invoice.totalAmount as any ?? (invoice as any).total_amount ?? 0) || 0;
+  const previousArrears = Number(invoice.remainingArrears ?? 0) || 0;
+  const creditApplied = Number(invoice.creditApplied ?? (invoice as any).credit_applied ?? 0) || 0;
+  const baseTotal = Number(invoice.totalAmount ?? (invoice as any).total_amount ?? 0) || 0;
   
-  const grandTotal = invoice.isNewFormat
-    ? baseTotal + previousArrears - creditApplied
-    : baseTotal;
+  const grandTotal = baseTotal + previousArrears - creditApplied;
 
   const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
   const titleEN = isReceipt ? 'Receipt' : 'Invoice';

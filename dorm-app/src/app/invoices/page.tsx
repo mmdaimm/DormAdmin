@@ -171,37 +171,45 @@ export default function InvoicesPage() {
     setSubmitError('');
 
     try {
-      // 1. Generate PDF Blob programmatically
+      // 1. Send the raw form data to POST /api/invoices (Step A)
+      const other = parseFloat(otherBill) || 0;
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: selectedRoom.roomId,
+          roomNumber: selectedRoom.roomNumber,
+          period,
+          currMeter: curr,
+          otherBill: other,
+          pdfUrl: 'PENDING_PDF',
+          proratedAmount,
+        }),
+      });
+
+      if (!res.ok && res.status !== 409) {
+        setSubmitError(`เกิดข้อผิดพลาด (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setSubmitError(data.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+        return;
+      }
+
+      const serverInvoice = data.invoice as Invoice;
+
+      // 2. Generate PDF Blob programmatically (Step B)
       const { pdf } = await import('@react-pdf/renderer');
       const { SlipPdf } = await import('@/components/pdf/SlipPdf');
 
-      const unitsUsed = curr - selectedRoom.prevMeter;
-      const electricityBill = unitsUsed * rates.electricRate;
-      const waterBill = rates.waterRate;
-      const other = parseFloat(otherBill) || 0;
-      const totalAmount = selectedRoom.monthlyRent + electricityBill + waterBill + other;
-
-      const invoiceId = `INV-${selectedRoom.roomId}-${period}`;
-      const tempInvoice: Invoice = {
-        invoiceId,
-        roomId: selectedRoom.roomId,
-        period,
-        prevMeter: selectedRoom.prevMeter,
-        currMeter: curr,
-        waterBill,
-        otherBill: other,
-        arrears: 0,
-        totalAmount,
-        paidAmount: 0,
-        status: 'UNPAID',
-        monthlyRent: selectedRoom.monthlyRent,
-      };
-
       const blob = await pdf(
-        <SlipPdf invoice={tempInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
+        <SlipPdf invoice={serverInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
       ).toBlob();
 
-      // 2. Upload the Blob via FormData
+      // 3. Upload the Blob via FormData (Step C)
       const formData = new FormData();
       formData.append('pdf', blob, `invoice-${selectedRoom.roomNumber}-${Date.now()}.pdf`);
       formData.append('roomNumber', selectedRoom.roomNumber);
@@ -220,35 +228,21 @@ export default function InvoicesPage() {
         throw new Error(uploadData.error || 'อัพโหลด PDF ล้มเหลว');
       }
 
-      // 3. Save the full billing data
-      const res = await fetch('/api/invoices', {
-        method: 'POST',
+      const uploadedPdfUrl = uploadData.url;
+
+      // 4. Make a PATCH request to update the final database URL (Step D)
+      const patchRes = await fetch(`/api/invoices/${serverInvoice.invoiceId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: selectedRoom.roomId,
-          roomNumber: selectedRoom.roomNumber,
-          period,
-          currMeter: curr,
-          otherBill: other,
-          pdfUrl: uploadData.url,
-          proratedAmount,
-        }),
+        body: JSON.stringify({ url_invoice: uploadedPdfUrl }),
       });
 
-      if (!res.ok && res.status !== 409) {
-        setSubmitError(`เกิดข้อผิดพลาด (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!data.success) {
-        setSubmitError(data.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
-        return;
+      if (!patchRes.ok) {
+        throw new Error(`บันทึก URL ของ PDF ล้มเหลว (HTTP ${patchRes.status})`);
       }
 
       setResult({
-        invoice: data.invoice as Invoice,
+        invoice: { ...serverInvoice, pdfUrl: uploadedPdfUrl },
         roomNumber: selectedRoom.roomNumber,
         electricRate: rates.electricRate,
       });

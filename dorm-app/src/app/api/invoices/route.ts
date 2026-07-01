@@ -212,6 +212,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         creditApplied: invoice.creditApplied,
         isNewFormat: invoice.isNewFormat,
         proratedAmount: invoice.proratedAmount,
+        remainingArrears: invoice.arrears,
         grandTotal, // For frontend UI
       },
     },
