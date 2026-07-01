@@ -4,10 +4,10 @@ import { SHEET_SETTINGS } from '@/services/sheetService'; // Wait, let's just us
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const invoiceId = params.id;
+    const invoiceId = (await params).id;
     if (!invoiceId) {
       return NextResponse.json({ success: false, error: 'Missing invoice ID' }, { status: 400 });
     }
