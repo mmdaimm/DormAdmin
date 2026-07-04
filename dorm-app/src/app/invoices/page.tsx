@@ -113,7 +113,10 @@ export default function InvoicesPage() {
 
   const selectedTenant = useMemo(() => {
     if (!selectedRoomId) return null;
-    return tenants.find(t => (t.room_id === selectedRoomId) && t.status === 'ACTIVE') || null;
+    const roomTenants = tenants.filter(t => t.room_id === selectedRoomId);
+    if (roomTenants.length === 0) return null;
+    const latestTenant = roomTenants[roomTenants.length - 1];
+    return latestTenant.status === 'ACTIVE' ? latestTenant : null;
   }, [selectedRoomId, tenants]);
 
   const isActiveTenant = !!selectedTenant;
@@ -323,6 +326,7 @@ export default function InvoicesPage() {
               invoice={result.invoice}
               roomNumber={result.roomNumber}
               electricRate={result.electricRate}
+              mode="INVOICE"
             />
 
             {/* Manual LINE Push Button */}

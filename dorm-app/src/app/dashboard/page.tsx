@@ -3,6 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Invoice } from '@/types';
+import dynamic from 'next/dynamic';
+
+const SafePdfButtons = dynamic(
+  () => import('@/components/pdf/PdfDownloadButtons'),
+  { ssr: false, loading: () => <p className="text-slate-400 text-sm">กำลังโหลดปุ่มดาวน์โหลด...</p> }
+);
 
 // ─── Local types (mirrors API response shape) ─────────────────────────────────
 
@@ -76,6 +82,7 @@ export default function DashboardPage() {
   // ── Payment Modal state ──────────────────────────────────────────────────────
   const [selectedInvoice, setSelectedInvoice] = useState<EnrichedInvoice | null>(null);
   const [amountPaidStr, setAmountPaidStr] = useState<string>('');
+  const [successInvoice, setSuccessInvoice] = useState<EnrichedInvoice | null>(null);
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [filter, setFilter] = useState<StatusFilter>('ALL');
@@ -91,8 +98,10 @@ export default function DashboardPage() {
       if (!data.success) throw new Error(data.error ?? 'เกิดข้อผิดพลาด');
       setKpi(data.kpi);
       setInvoices(data.invoices);
+      return data.invoices as EnrichedInvoice[];
     } catch (err: unknown) {
       setDataError(err instanceof Error ? err.message : 'ไม่สามารถโหลดข้อมูลได้');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -128,9 +137,11 @@ export default function DashboardPage() {
       }
       
       // Reload to get exact updated state (credits, arrears, status) from backend
-      await load();
+      const updatedInvoices = await load();
+      return updatedInvoices?.find(i => i.invoiceId === invoiceId);
     } catch (err: unknown) {
       setPayError(err instanceof Error ? err.message : 'บันทึกการชำระเงินไม่สำเร็จ กรุณาลองใหม่');
+      return null;
     } finally {
       setPayingIds((prev) => {
         const next = new Set(prev);
@@ -156,7 +167,10 @@ export default function DashboardPage() {
       if (isInvalid) return;
       const invId = selectedInvoice.invoiceId;
       setSelectedInvoice(null);
-      await handlePay(invId, amountPaid);
+      const updated = await handlePay(invId, amountPaid);
+      if (updated) {
+        setSuccessInvoice(updated);
+      }
     };
 
     return (
@@ -208,6 +222,40 @@ export default function DashboardPage() {
               ยืนยันการชำระเงิน
             </button>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSuccessModal = () => {
+    if (!successInvoice) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/40">
+              <span className="text-2xl">✅</span>
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">บันทึกการรับชำระเงินสำเร็จ</h3>
+          <p className="text-slate-400 text-sm mb-6">
+            อัปเดตข้อมูลใบแจ้งหนี้เลขที่ <span className="font-mono text-slate-300">{successInvoice.invoiceId}</span> เรียบร้อยแล้ว
+          </p>
+          
+          <div className="mb-6 text-left">
+            <SafePdfButtons 
+              invoice={successInvoice} 
+              roomNumber={successInvoice.roomNumber} 
+              mode="RECEIPT" 
+            />
+          </div>
+
+          <button
+            onClick={() => setSuccessInvoice(null)}
+            className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-colors"
+          >
+            ปิด
+          </button>
         </div>
       </div>
     );
@@ -450,7 +498,9 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Payment & Success Modals */}
         {renderPaymentModal()}
+        {renderSuccessModal()}
       </div>
     </div>
   );

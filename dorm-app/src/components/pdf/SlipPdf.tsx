@@ -295,6 +295,8 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   const baseTotal = Number(invoice.totalAmount ?? (invoice as any).total_amount ?? 0) || 0;
   
   const grandTotal = baseTotal + previousArrears - creditApplied;
+  const actualPaid = Number(invoice.paidAmount ?? (invoice as any).paid_amount ?? 0) || 0;
+  const remainingBalance = Math.max(0, grandTotal - actualPaid);
 
   const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
   const titleEN = isReceipt ? 'Receipt' : 'Invoice';
@@ -410,14 +412,29 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
           </View>
         </View>
 
-        <View style={S.totalBand}>
-          <Text style={S.totalLabel}>
-            {isReceipt ? 'ยอดที่ได้รับชำระ' : 'ยอดที่ต้องชำระทั้งหมด'}
-          </Text>
-          <Text style={S.totalAmount}>
-            ฿ {fmt(isReceipt ? invoice.paidAmount : grandTotal)}
-          </Text>
-        </View>
+        {isReceipt ? (
+          <View style={[S.totalBand, { flexDirection: 'column', alignItems: 'stretch', paddingVertical: 8, gap: 4 } as any]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={[S.totalLabel, { fontWeight: 400 }]}>ยอดรวมทั้งสิ้น</Text>
+              <Text style={[S.totalAmount, { fontSize: 12, color: '#ffffff' }]}>฿ {fmt(grandTotal)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={[S.totalLabel, { color: '#fde68a' }]}>รับชำระแล้ว</Text>
+              <Text style={[S.totalAmount, { color: '#fde68a' }]}>฿ {fmt(actualPaid)}</Text>
+            </View>
+            {remainingBalance > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#6366f1' }}>
+                <Text style={[S.totalLabel, { color: '#fca5a5' }]}>ยอดคงค้างยกไป</Text>
+                <Text style={[S.totalAmount, { color: '#fca5a5' }]}>฿ {fmt(remainingBalance)}</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={S.totalBand}>
+            <Text style={S.totalLabel}>ยอดที่ต้องชำระทั้งหมด</Text>
+            <Text style={S.totalAmount}>฿ {fmt(grandTotal)}</Text>
+          </View>
+        )}
 
         {/* ── Paid stamp (receipt only) ── */}
         {isReceipt && (

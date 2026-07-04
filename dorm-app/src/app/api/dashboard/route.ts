@@ -37,11 +37,17 @@ export async function GET(): Promise<NextResponse> {
     // ── Build lookup maps ────────────────────────────────────────────────────
     const roomById = new Map<string, Room>(rooms.map((r) => [r.roomId, r]));
 
-    // Map roomId → active tenant (most recently added wins if multiple)
-    const activeTenantByRoom = new Map<string, Tenant>();
+    // 1. Get the absolute latest record for each room (last append wins)
+    const latestTenantByRoom = new Map<string, Tenant>();
     for (const t of tenants) {
+      latestTenantByRoom.set(t.room_id, t);
+    }
+    
+    // 2. Filter to keep only rooms where the LATEST status is ACTIVE
+    const activeTenantByRoom = new Map<string, Tenant>();
+    for (const [roomId, t] of latestTenantByRoom.entries()) {
       if (t.status === 'ACTIVE') {
-        activeTenantByRoom.set(t.room_id, t);
+        activeTenantByRoom.set(roomId, t);
       }
     }
 
