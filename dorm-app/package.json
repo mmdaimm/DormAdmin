@@ -12,7 +12,10 @@
     "@aws-sdk/client-s3": "^3.1075.0",
     "@line/bot-sdk": "^11.0.2",
     "@react-pdf/renderer": "^4.5.1",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
     "googleapis": "^173.0.0",
+    "jose": "^6.2.3",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"

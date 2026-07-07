@@ -35,9 +35,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let roomId: string;
   let totalAmount: number;
   let newCredit: number;
+  let cumulativePaid: number;
+  let newStatus: string;
 
   try {
-    ({ roomId, totalAmount, newCredit } = await processPayment(invoiceId.trim(), amountPaid));
+    ({ roomId, totalAmount, newCredit, cumulativePaid, newStatus } = await processPayment(invoiceId.trim(), amountPaid));
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
 
@@ -53,7 +55,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       const [tenants, rooms] = await Promise.all([getTenants(), getRooms()]);
 
-      const tenant = tenants.find((t) => t.room_id === roomId && t.status === 'ACTIVE');
+      const roomTenants = tenants.filter((t) => t.room_id === roomId);
+      const latestTenant = roomTenants[roomTenants.length - 1] ?? null;
+      const tenant = latestTenant && latestTenant.status === 'ACTIVE' ? latestTenant : null;
+      
       const room = rooms.find((r) => r.roomId === roomId);
       const roomNumber = room?.roomNumber ?? roomId;
 
@@ -62,8 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         
         if (newCredit > 0) {
           lineMessage += `👉 ยอดชำระเกิน ${newCredit.toLocaleString('th-TH')} บาท ระบบได้บันทึกเป็นเครดิตสะสมสำหรับรอบบิลถัดไป\n`;
-        } else if (amountPaid < totalAmount) {
-          lineMessage += `👉 คงค้างชำระ ${(totalAmount - amountPaid).toLocaleString('th-TH')} บาท\n`;
+        } else if (newStatus === 'PARTIAL') {
+          const trueRemaining = totalAmount - cumulativePaid;
+          lineMessage += `👉 คงค้างชำระ ${trueRemaining.toLocaleString('th-TH')} บาท\n`;
         }
 
         lineMessage += `ขอบคุณค่ะ 😊`;

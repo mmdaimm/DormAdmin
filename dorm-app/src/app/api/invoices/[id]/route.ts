@@ -1,3 +1,4 @@
+// DEPRECATED: no longer called after the invoice-save flow was redesigned to write to Sheets only after PDF upload succeeds. Safe to delete once the new flow is confirmed stable in production.
 import { NextRequest, NextResponse } from 'next/server';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { SHEET_SETTINGS } from '@/services/sheetService'; // Wait, let's just use string literal 'Invoices'

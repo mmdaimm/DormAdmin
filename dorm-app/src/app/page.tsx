@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { decrypt } from '@/lib/auth';
+import LogoutButton from '@/components/LogoutButton';
 
 export const metadata: Metadata = {
   title: 'DormAdmin | เมนูหลัก',
   description: 'ระบบจัดการหอพัก — เลือกฟังก์ชันที่ต้องการใช้งาน',
 };
 
-// ─── Static navigation cards — ZERO API calls on this page ───────────────────
-
+// ─── Static navigation cards ────────────────────────────────────────────────
 const NAV_CARDS = [
   {
     href: '/invoices',
@@ -19,6 +21,7 @@ const NAV_CARDS = [
     iconBg: 'bg-indigo-500/20',
     badgeColor: 'text-indigo-400',
     glow: 'hover:shadow-indigo-900/30',
+    roles: ['admin', 'owner'],
   },
   {
     href: '/dashboard',
@@ -30,6 +33,7 @@ const NAV_CARDS = [
     iconBg: 'bg-cyan-500/20',
     badgeColor: 'text-cyan-400',
     glow: 'hover:shadow-cyan-900/30',
+    roles: ['admin', 'owner'],
   },
   {
     href: '/tenants',
@@ -41,6 +45,7 @@ const NAV_CARDS = [
     iconBg: 'bg-violet-500/20',
     badgeColor: 'text-violet-400',
     glow: 'hover:shadow-violet-900/30',
+    roles: ['owner'],
   },
   {
     href: '/settings',
@@ -52,15 +57,33 @@ const NAV_CARDS = [
     iconBg: 'bg-slate-600/30',
     badgeColor: 'text-slate-400',
     glow: 'hover:shadow-slate-900/30',
+    roles: ['owner'],
   },
 ] as const;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  const session = await decrypt(token);
+  const userRole = session?.role || 'admin';
+  const username = session?.username || 'User';
+
+  const visibleCards = NAV_CARDS.filter(card => (card.roles as readonly string[]).includes(userRole));
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
 
+      {/* ── Top Bar ── */}
+      <div className="w-full flex justify-between items-center px-6 py-4 border-b border-slate-800">
+        <div className="text-slate-400 text-sm">
+          เข้าสู่ระบบในชื่อ: <span className="text-white font-medium">{username}</span> 
+          <span className="ml-2 px-2 py-0.5 rounded-full bg-slate-800 text-xs uppercase tracking-wider">{userRole}</span>
+        </div>
+        <LogoutButton />
+      </div>
+
       {/* ── Hero Header ── */}
-      <header className="pt-16 pb-10 px-4 text-center">
+      <header className="pt-12 pb-10 px-4 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl
                         bg-indigo-600/20 border border-indigo-500/30 mb-6">
           <span className="text-3xl">🏠</span>
@@ -73,10 +96,10 @@ export default function HomePage() {
         </p>
       </header>
 
-      {/* ── 2×2 Navigation Grid ── */}
+      {/* ── Navigation Grid ── */}
       <main className="flex-1 px-4 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
-          {NAV_CARDS.map((card) => (
+          {visibleCards.map((card) => (
             <Link
               key={card.href}
               href={card.href}
@@ -88,7 +111,6 @@ export default function HomePage() {
                 min-h-[176px]
               `}
             >
-              {/* Icon */}
               <div className={`
                 w-14 h-14 flex items-center justify-center rounded-xl
                 ${card.iconBg} shrink-0 text-3xl
@@ -97,7 +119,6 @@ export default function HomePage() {
                 {card.emoji}
               </div>
 
-              {/* Text */}
               <div className="flex-1">
                 <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${card.badgeColor}`}>
                   {card.titleEN}
@@ -110,7 +131,6 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Chevron arrow */}
               <div className="absolute top-5 right-5 text-slate-600 group-hover:text-slate-400 transition-colors">
                 <svg
                   className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-0.5"

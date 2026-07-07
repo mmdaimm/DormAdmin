@@ -8,6 +8,7 @@ export const SHEET_SETTINGS = 'Settings';
 const SHEET_ROOMS = 'Rooms';
 const SHEET_INVOICES = 'Invoices';
 const SHEET_TENANTS = 'Tenants';
+const SHEET_USERS = 'Users';
 
 // ─── Column layout assumptions ──────────────────────────────────────────────────────────
 //
@@ -18,6 +19,7 @@ const SHEET_TENANTS = 'Tenants';
 //             J=paidAmount | K=status
 // Tenants   : A=tenantId | B=firstname | C=lastname | D=phone
 //             E=room_id | F=entryDate | G=status
+// Users     : A=username | B=password_hash | C=role
 
 // ─── Rates ────────────────────────────────────────────────────────────────────
 
@@ -296,7 +298,7 @@ export async function getTenants(): Promise<Tenant[]> {
 export async function processPayment(
   invoiceId: string,
   amountPaid: number
-): Promise<{ roomId: string; totalAmount: number; newCredit: number }> {
+): Promise<{ roomId: string; totalAmount: number; newCredit: number; cumulativePaid: number; newStatus: string }> {
   // 1. Fetch full Invoices sheet to locate the row and verify live status.
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -406,7 +408,7 @@ export async function processPayment(
     }
   }
 
-  return { roomId, totalAmount: grandTotal, newCredit };
+  return { roomId, totalAmount: grandTotal, newCredit, cumulativePaid, newStatus };
 }
 
 /**
@@ -431,4 +433,30 @@ export async function saveTenant(tenant: Tenant): Promise<void> {
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: [row] },
   });
+}
+
+// --- Users ------------------------------------------------------------------
+
+import type { User, Role } from '@/types/auth';
+
+export async function getUserByUsername(username: string): Promise<User | null> {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_USERS}!A2:C`,
+    });
+
+    const rows = response.data.values ?? [];
+    const userRow = rows.find((row) => String(row[0] ?? '').trim() === username);
+    if (!userRow) return null;
+
+    return {
+      username: String(userRow[0] ?? '').trim(),
+      passwordHash: String(userRow[1] ?? '').trim(),
+      role: String(userRow[2] ?? '').trim() as Role,
+    };
+  } catch (error) {
+    console.error('Failed to get user from sheet:', error);
+    return null;
+  }
 }

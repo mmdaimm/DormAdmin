@@ -174,9 +174,10 @@ export default function InvoicesPage() {
     setSubmitError('');
 
     try {
-      // 1. Send the raw form data to POST /api/invoices (Step A)
       const other = parseFloat(otherBill) || 0;
-      const res = await fetch('/api/invoices', {
+
+      // Step A: calculate only — nothing is written to Google Sheets yet.
+      const calcRes = await fetch('/api/invoices/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -185,34 +186,33 @@ export default function InvoicesPage() {
           period,
           currMeter: curr,
           otherBill: other,
-          pdfUrl: 'PENDING_PDF',
           proratedAmount,
         }),
       });
 
-      if (!res.ok && res.status !== 409) {
-        setSubmitError(`เกิดข้อผิดพลาด (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
+      if (!calcRes.ok && calcRes.status !== 409) {
+        setSubmitError(`เกิดข้อผิดพลาด (HTTP ${calcRes.status}: ${calcRes.statusText || 'Server Error'})`);
         return;
       }
 
-      const data = await res.json();
+      const calcData = await calcRes.json();
 
-      if (!data.success) {
-        setSubmitError(data.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+      if (!calcData.success) {
+        setSubmitError(calcData.error ?? 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
         return;
       }
 
-      const serverInvoice = data.invoice as Invoice;
+      const computedInvoice = calcData.invoice as Invoice;
 
-      // 2. Generate PDF Blob programmatically (Step B)
+      // Step B: generate the PDF from the computed (but not yet saved) invoice.
       const { pdf } = await import('@react-pdf/renderer');
       const { SlipPdf } = await import('@/components/pdf/SlipPdf');
 
       const blob = await pdf(
-        <SlipPdf invoice={serverInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
+        <SlipPdf invoice={computedInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
       ).toBlob();
 
-      // 3. Upload the Blob via FormData (Step C)
+      // Step C: upload the PDF to get a real URL.
       const formData = new FormData();
       formData.append('pdf', blob, `invoice-${selectedRoom.roomNumber}-${Date.now()}.pdf`);
       formData.append('roomNumber', selectedRoom.roomNumber);
@@ -225,7 +225,7 @@ export default function InvoicesPage() {
       if (!uploadRes.ok) {
         throw new Error(`อัพโหลด PDF ล้มเหลว (HTTP ${uploadRes.status})`);
       }
-      
+
       const uploadData = await uploadRes.json();
       if (!uploadData.success) {
         throw new Error(uploadData.error || 'อัพโหลด PDF ล้มเหลว');
@@ -233,19 +233,33 @@ export default function InvoicesPage() {
 
       const uploadedPdfUrl = uploadData.url;
 
-      // 4. Make a PATCH request to update the final database URL (Step D)
-      const patchRes = await fetch(`/api/invoices/${serverInvoice.invoiceId}`, {
-        method: 'PATCH',
+      // Step D: only NOW write to Google Sheets, with the real PDF URL included.
+      const saveRes = await fetch('/api/invoices', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url_invoice: uploadedPdfUrl }),
+        body: JSON.stringify({
+          roomId: selectedRoom.roomId,
+          roomNumber: selectedRoom.roomNumber,
+          period,
+          currMeter: curr,
+          otherBill: other,
+          proratedAmount,
+          pdfUrl: uploadedPdfUrl,
+        }),
       });
 
-      if (!patchRes.ok) {
-        throw new Error(`บันทึก URL ของ PDF ล้มเหลว (HTTP ${patchRes.status})`);
+      if (!saveRes.ok) {
+        const saveError = await saveRes.json().catch(() => ({}));
+        throw new Error(saveError.error || `บันทึกใบแจ้งหนี้ล้มเหลว (HTTP ${saveRes.status})`);
+      }
+
+      const saveData = await saveRes.json();
+      if (!saveData.success) {
+        throw new Error(saveData.error ?? 'บันทึกใบแจ้งหนี้ล้มเหลว');
       }
 
       setResult({
-        invoice: { ...serverInvoice, pdfUrl: uploadedPdfUrl },
+        invoice: saveData.invoice as Invoice,
         roomNumber: selectedRoom.roomNumber,
         electricRate: rates.electricRate,
       });

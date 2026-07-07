@@ -101,3 +101,5 @@ export interface SettingRate {
   /** Human-readable explanation shown in the settings UI. */
   description: string;
 }
+
+export * from './auth';
