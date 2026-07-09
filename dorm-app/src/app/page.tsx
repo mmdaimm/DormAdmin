@@ -48,6 +48,18 @@ const NAV_CARDS = [
     roles: ['owner'],
   },
   {
+    href: '/invoice-manager',
+    emoji: '📋',
+    titleTH: 'จัดการบิล',
+    titleEN: 'Invoice Manager',
+    description: 'ดูรายการบิลทั้งหมด และสามารถแก้ไขสถานะการชำระเงินย้อนหลังได้',
+    accent: 'from-fuchsia-500/20 to-pink-600/10 border-fuchsia-500/30 hover:border-fuchsia-400/60',
+    iconBg: 'bg-fuchsia-500/20',
+    badgeColor: 'text-fuchsia-400',
+    glow: 'hover:shadow-fuchsia-900/30',
+    roles: ['owner'],
+  },
+  {
     href: '/settings',
     emoji: '⚙️',
     titleTH: 'ตั้งค่าระบบ',
@@ -58,6 +70,18 @@ const NAV_CARDS = [
     badgeColor: 'text-slate-400',
     glow: 'hover:shadow-slate-900/30',
     roles: ['owner'],
+  },
+  {
+    href: '/accounting',
+    emoji: '📈',
+    titleTH: 'ระบบบัญชี',
+    titleEN: 'Accounting',
+    description: 'ดูภาพรวมรายได้ รายจ่าย กำไร และเพิ่มรายการค่าใช้จ่ายต่างๆ',
+    accent: 'from-emerald-500/20 to-teal-600/10 border-emerald-500/30 hover:border-emerald-400/60',
+    iconBg: 'bg-emerald-500/20',
+    badgeColor: 'text-emerald-400',
+    glow: 'hover:shadow-emerald-900/30',
+    roles: ['admin', 'owner'],
   },
 ] as const;
 

@@ -3,8 +3,9 @@ import type { NextRequest } from 'next/server';
 import { decrypt } from '@/lib/auth';
 
 const publicRoutes = ['/login'];
-const adminRestrictedRoutes = ['/settings', '/tenants', '/accounting'];
-const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants'];
+const adminRestrictedRoutes = ['/settings', '/tenants', '/invoice-manager'];
+const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants']; // Allows GET, blocks others
+const adminStrictBlockedApiRoutes = [] as string[]; // Blocks ALL methods
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -40,9 +41,14 @@ export async function middleware(request: NextRequest) {
   if (session.role === 'admin') {
     const isRestrictedPage = adminRestrictedRoutes.some(route => pathname.startsWith(route));
     const isRestrictedApi = adminRestrictedApiRoutes.some(route => pathname.startsWith(route));
+    const isStrictBlockedApi = adminStrictBlockedApiRoutes.some(route => pathname.startsWith(route));
 
     if (isRestrictedPage) {
       return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    if (isStrictBlockedApi) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (isRestrictedApi && request.method !== 'GET') {

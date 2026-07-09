@@ -1,7 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { Role } from '@/types/auth';
 
-const secretKey = process.env.JWT_SECRET || 'dorm_admin_secret_key_12345';
+if (!process.env.JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET environment variable is not set. Refusing to start with an insecure default.'
+  );
+}
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export interface SessionPayload {

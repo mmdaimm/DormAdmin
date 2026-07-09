@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { messagingApi } from '@line/bot-sdk';
 import { getTenants, getRooms, getAllInvoices } from '@/services/sheetService';
+import { getActiveTenantForRoom } from '@/lib/tenantUtils';
 
 function getLineClient() {
   return new messagingApi.MessagingApiClient({
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Identify target Room/Tenant and resolve LINE User ID server-side
     const [tenants, rooms] = await Promise.all([getTenants(), getRooms()]);
-    const tenant = tenants.find((t) => t.room_id === invoice.roomId && t.status === 'ACTIVE');
+    const tenant = getActiveTenantForRoom(tenants, invoice.roomId);
     const room = rooms.find((r) => r.roomId === invoice.roomId);
 
     if (!tenant?.lineUserId) {

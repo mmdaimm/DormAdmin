@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { getActiveTenantForRoom } from '@/lib/tenantUtils';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { Invoice, Tenant } from '@/types';
@@ -113,10 +114,7 @@ export default function InvoicesPage() {
 
   const selectedTenant = useMemo(() => {
     if (!selectedRoomId) return null;
-    const roomTenants = tenants.filter(t => t.room_id === selectedRoomId);
-    if (roomTenants.length === 0) return null;
-    const latestTenant = roomTenants[roomTenants.length - 1];
-    return latestTenant.status === 'ACTIVE' ? latestTenant : null;
+    return getActiveTenantForRoom(tenants, selectedRoomId);
   }, [selectedRoomId, tenants]);
 
   const isActiveTenant = !!selectedTenant;

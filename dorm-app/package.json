@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "cross-env TEST_MODE=true next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -14,17 +15,21 @@
     "@react-pdf/renderer": "^4.5.1",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
+    "cross-env": "^10.1.0",
     "googleapis": "^173.0.0",
     "jose": "^6.2.3",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.9.2",
+    "write-file-atomic": "^8.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/write-file-atomic": "^4.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",

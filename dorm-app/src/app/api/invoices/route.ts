@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllInvoices, saveInvoice } from '@/services/sheetService';
+import { getAllInvoices, saveInvoice, updateInvoice } from '@/services/sheetService';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { computeInvoiceValues, InvoiceComputeError } from '@/services/invoiceCalculator';
 
@@ -101,5 +101,29 @@ export async function GET(): Promise<NextResponse> {
       { success: false, error: 'ไม่สามารถโหลดข้อมูลบิลได้' },
       { status: 502 }
     );
+  }
+}
+
+
+
+export async function PUT(request: NextRequest): Promise<NextResponse> {
+  try {
+    const body = await request.json();
+    const { invoiceId, ...updates } = body;
+    
+    if (!invoiceId) {
+      return NextResponse.json({ success: false, error: 'Missing invoiceId' }, { status: 400 });
+    }
+    
+    const updated = await updateInvoice(invoiceId, updates);
+    
+    if (!updated) {
+      return NextResponse.json({ success: false, error: 'Invoice not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ success: true, invoice: updated });
+  } catch (error) {
+    console.error('[PUT /api/invoices]', error);
+    return NextResponse.json({ success: false, error: 'Failed to update invoice' }, { status: 500 });
   }
 }

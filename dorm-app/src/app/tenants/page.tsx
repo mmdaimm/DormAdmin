@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Tenant } from '@/types';
 
@@ -21,6 +21,7 @@ interface TenantForm {
   phone: string;
   entryDate: string;
   status: 'ACTIVE' | 'INACTIVE';
+  lineUserId: string;
 }
 
 const DEFAULT_FORM: TenantForm = {
@@ -29,6 +30,7 @@ const DEFAULT_FORM: TenantForm = {
   phone: '',
   entryDate: '',
   status: 'ACTIVE',
+  lineUserId: '',
 };
 
 // ─── Client-side validation ───────────────────────────────────────────────────
@@ -150,6 +152,7 @@ export default function TenantsPage() {
             phone:     existing.phone,
             entryDate: existing.entryDate,
             status:    existing.status,
+            lineUserId: existing.lineUserId || '',
           }
         : DEFAULT_FORM
     );
@@ -435,6 +438,20 @@ export default function TenantsPage() {
                               placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
                               focus:border-transparent transition font-mono
                               ${fieldErrors.phone ? 'border-red-500' : 'border-slate-600'}`}
+                />
+              </Field>
+
+              {/* Line ID */}
+              <Field label="Line ID (ถ้ามี)" error={fieldErrors.lineUserId}>
+                <input
+                  name="lineUserId"
+                  value={form.lineUserId}
+                  onChange={handleChange}
+                  placeholder="เช่น @dorm123 หรือ UserID"
+                  className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
+                              placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                              focus:border-transparent transition
+                              ${fieldErrors.lineUserId ? 'border-red-500' : 'border-slate-600'}`}
                 />
               </Field>
 

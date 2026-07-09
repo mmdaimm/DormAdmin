@@ -27,10 +27,12 @@ export async function GET(): Promise<NextResponse> {
 
     // ── In-memory enrichment ───────────────────────────────────────────────────
     const enriched = rooms.map((room) => {
-      // Filter all invoices for this room, then grab the last one (most recent).
-      // getAllInvoices() preserves sheet row order (top-to-bottom), so the last
-      // element in the filtered array is the newest entry — consistent with
-      // the reverse-scan logic previously used in getLastInvoiceByRoom().
+      // Filter all invoices for this room (excluding cancelled/void), then sort
+      // by period descending and take the first. This relies on the invariant
+      // that each room has at most one invoice per period (enforced by the
+      // duplicate-check in computeInvoiceValues), so sorting by period is a
+      // safe way to find the latest — unlike Tenants, which has no such
+      // uniqueness guarantee and must rely on append-order instead.
       const roomInvoices = allInvoices.filter((inv) => inv.roomId === room.roomId && inv.status !== 'CANCELLED' as any && inv.status !== 'VOID' as any);
       
       // Sort by period descending to confidently get the latest invoice

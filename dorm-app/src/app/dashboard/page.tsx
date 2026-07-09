@@ -115,7 +115,7 @@ export default function DashboardPage() {
   // ── Pay action ───────────────────────────────────────────────────────────────
   const openPaymentModal = (inv: EnrichedInvoice) => {
     setSelectedInvoice(inv);
-    const billedTotal = (inv.totalAmount || 0) + (inv.remainingArrears || 0) - (inv.creditApplied || 0);
+    const billedTotal = (inv.totalAmount ?? 0) + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0);
     const safeRemaining = Math.max(0, billedTotal - (inv.paidAmount || 0));
     setAmountPaidStr(safeRemaining.toString());
   };
@@ -156,7 +156,7 @@ export default function DashboardPage() {
     if (!selectedInvoice) return null;
     
     const amountPaid = parseFloat(amountPaidStr) || 0;
-    const billedTotal = (selectedInvoice.totalAmount || 0) + (selectedInvoice.remainingArrears || 0) - (selectedInvoice.creditApplied || 0);
+    const billedTotal = (selectedInvoice.totalAmount ?? 0) + (selectedInvoice.remainingArrears ?? 0) - (selectedInvoice.creditApplied ?? 0);
     const safeRemaining = Math.max(0, billedTotal - (selectedInvoice.paidAmount || 0));
     const grandTotal = safeRemaining;
     const isOverpaid = amountPaid > grandTotal;

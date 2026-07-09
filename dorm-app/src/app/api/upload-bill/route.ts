@@ -14,6 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    if (file.type !== 'application/pdf') {
+      return NextResponse.json(
+        { success: false, error: 'ไฟล์ที่อัปโหลดต้องเป็น PDF เท่านั้น' },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      return NextResponse.json(
+        { success: false, error: 'ไฟล์ PDF มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 10MB)' },
+        { status: 400 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `invoice-${roomNumber}-${Date.now()}.pdf`;
 

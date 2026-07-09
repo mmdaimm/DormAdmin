@@ -103,3 +103,12 @@ export interface SettingRate {
 }
 
 export * from './auth';
+
+// --- Expense -----------------------------------------------------------------
+export interface Expense {
+  id: string;
+  date: string; // YYYY-MM-DD
+  category: 'MAINTENANCE' | 'UTILITY' | 'OTHER';
+  description: string;
+  amount: number;
+}

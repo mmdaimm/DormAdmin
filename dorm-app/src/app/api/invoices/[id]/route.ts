@@ -1,4 +1,7 @@
-// DEPRECATED: no longer called after the invoice-save flow was redesigned to write to Sheets only after PDF upload succeeds. Safe to delete once the new flow is confirmed stable in production.
+// DEPRECATED: no longer called after the invoice-save flow was redesigned
+// to write to Google Sheets only after PDF upload succeeds (see
+// /api/invoices/calculate and /api/invoices for the current flow).
+// Safe to delete once confirmed no client code references this route.
 import { NextRequest, NextResponse } from 'next/server';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { SHEET_SETTINGS } from '@/services/sheetService'; // Wait, let's just use string literal 'Invoices'

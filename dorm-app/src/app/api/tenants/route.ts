@@ -9,8 +9,8 @@ interface CreateTenantBody {
   lastname: string;
   phone: string;
   room_id: string;
-  entryDate: string;
   status?: 'ACTIVE' | 'INACTIVE';
+  lineUserId?: string;
 }
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { firstname, lastname, phone, room_id, entryDate, status = 'ACTIVE' } = body;
+  const { firstname, lastname, phone, room_id, entryDate, status = 'ACTIVE', lineUserId } = body;
 
   // 2. Validate required string fields ────────────────────────────────────────
   const fieldErrors: Record<string, string> = {};
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     room_id:   room_id.trim(),
     entryDate: entryDate.trim(),
     status,
+    lineUserId: lineUserId?.trim(),
   };
 
   try {

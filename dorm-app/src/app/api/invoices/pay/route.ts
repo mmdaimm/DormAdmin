@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { messagingApi } from '@line/bot-sdk';
 import { processPayment, getTenants, getRooms } from '@/services/sheetService';
+import { getActiveTenantForRoom } from '@/lib/tenantUtils';
 
 function getLineClient(): messagingApi.MessagingApiClient {
   return new messagingApi.MessagingApiClient({
@@ -55,9 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       const [tenants, rooms] = await Promise.all([getTenants(), getRooms()]);
 
-      const roomTenants = tenants.filter((t) => t.room_id === roomId);
-      const latestTenant = roomTenants[roomTenants.length - 1] ?? null;
-      const tenant = latestTenant && latestTenant.status === 'ACTIVE' ? latestTenant : null;
+      const tenant = getActiveTenantForRoom(tenants, roomId);
       
       const room = rooms.find((r) => r.roomId === roomId);
       const roomNumber = room?.roomNumber ?? roomId;
