@@ -81,7 +81,7 @@ const NAV_CARDS = [
     iconBg: 'bg-emerald-500/20',
     badgeColor: 'text-emerald-400',
     glow: 'hover:shadow-emerald-900/30',
-    roles: ['admin', 'owner'],
+    roles: ['owner'],
   },
 ] as const;
 
