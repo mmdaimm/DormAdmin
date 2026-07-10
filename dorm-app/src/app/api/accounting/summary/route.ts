@@ -53,10 +53,14 @@ export async function GET(request: NextRequest) {
 
     for (const roomId in latestInvoicesByRoom) {
       const inv = latestInvoicesByRoom[roomId];
+      // Grand Total = total_amount + old_arrears - credit_applied (Spec 3.1) —
+      // must match the same formula used everywhere else in the system
+      // (SlipPdf.tsx, dashboard/page.tsx, invoiceCalculator.ts).
+      const grandTotal = (inv.totalAmount ?? 0) + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0);
       if (inv.status === 'UNPAID') {
-        totalDebt += inv.totalAmount;
+        totalDebt += grandTotal;
       } else if (inv.status === 'PARTIAL') {
-        totalDebt += (inv.totalAmount - (inv.paidAmount || 0));
+        totalDebt += Math.max(0, grandTotal - (inv.paidAmount ?? 0));
       }
     }
 

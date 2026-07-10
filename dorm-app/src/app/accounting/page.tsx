@@ -73,6 +73,8 @@ export default function AccountingPage() {
   };
 
   const formatThB = (num: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(num);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
 
   if (loading) {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">กำลังโหลดข้อมูล...</div>;
@@ -94,9 +96,9 @@ export default function AccountingPage() {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
+              {yearOptions.map((y) => (
+                <option key={y} value={y.toString()}>{y}</option>
+              ))}
               <option value="all">รวมทุกปี (All Years)</option>
             </select>
             <Link href="/" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-700">

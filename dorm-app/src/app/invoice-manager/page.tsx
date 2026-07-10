@@ -187,8 +187,8 @@ export default function InvoiceManagerPage() {
                   <td className="py-3 px-4">{inv.roomId}</td>
                   <td className="py-3 px-4 text-right">{inv.currMeter - inv.prevMeter}</td>
                   <td className="py-3 px-4 text-right">{formatThB(inv.waterBill)}</td>
-                  <td className="py-3 px-4 text-right text-rose-400">{formatThB(inv.arrears)}</td>
-                  <td className="py-3 px-4 text-right font-bold text-emerald-400">{formatThB(inv.totalAmount + inv.arrears - (inv.creditApplied || 0))}</td>
+                  <td className="py-3 px-4 text-right text-rose-400">{formatThB(inv.remainingArrears ?? 0)}</td>
+                  <td className="py-3 px-4 text-right font-bold text-emerald-400">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
                   
                   {editingId === inv.invoiceId ? (
                     <>

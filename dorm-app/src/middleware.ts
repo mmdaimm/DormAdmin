@@ -3,9 +3,13 @@ import type { NextRequest } from 'next/server';
 import { decrypt } from '@/lib/auth';
 
 const publicRoutes = ['/login'];
-const adminRestrictedRoutes = ['/settings', '/tenants', '/invoice-manager'];
+const adminRestrictedRoutes = ['/settings', '/tenants', '/invoice-manager', '/accounting'];
 const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants']; // Allows GET, blocks others
-const adminStrictBlockedApiRoutes = [] as string[]; // Blocks ALL methods
+const adminStrictBlockedApiRoutes = ['/api/accounting']; // Blocks ALL methods
+const adminMethodRestrictions: Record<string, string[]> = {
+  // admin ยังสร้างบิลได้ปกติ (POST) และดูบิลได้ (GET) — บล็อกเฉพาะ manual override (PUT)
+  '/api/invoices': ['PUT'],
+};
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -53,6 +57,15 @@ export async function middleware(request: NextRequest) {
 
     if (isRestrictedApi && request.method !== 'GET') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const matchedMethodRestriction = Object.entries(adminMethodRestrictions)
+      .find(([route]) => pathname.startsWith(route));
+    if (matchedMethodRestriction) {
+      const [, blockedMethods] = matchedMethodRestriction;
+      if (blockedMethods.includes(request.method)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
   }
 

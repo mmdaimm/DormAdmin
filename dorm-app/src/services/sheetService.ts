@@ -132,13 +132,32 @@ export async function saveInvoice(invoiceData: Invoice): Promise<void> {
   await appendSheetValues(`${SHEET_INVOICES}!A1`, [row]);
 }
 
-export async function updateInvoice(invoiceId: string, updates: Partial<Invoice>): Promise<Invoice | null> {
+/**
+ * Fields that manual override (PUT /api/invoices) is allowed to change.
+ * Everything else — especially remainingArrears (old_arrears, immutable
+ * after invoice creation) and pdfUrl (must never be blanked out) — is
+ * silently ignored even if present in the caller's `updates` object.
+ */
+const UPDATABLE_INVOICE_FIELDS = ['status', 'paidAmount', 'arrears'] as const;
+
+export async function updateInvoice(
+  invoiceId: string,
+  updates: Partial<Pick<Invoice, typeof UPDATABLE_INVOICE_FIELDS[number]>>
+): Promise<Invoice | null> {
   const rows = await getSheetValues(`${SHEET_INVOICES}!A2:P`);
   const rowIndex = rows.findIndex(row => String(row[0] ?? '').trim() === invoiceId);
   if (rowIndex === -1) return null;
 
   const existingInvoice = rowToInvoice(rows[rowIndex]);
-  const updatedInvoice = { ...existingInvoice, ...updates };
+
+  const safeUpdates: Partial<Invoice> = {};
+  for (const key of UPDATABLE_INVOICE_FIELDS) {
+    if (updates[key] !== undefined) {
+      (safeUpdates as any)[key] = updates[key];
+    }
+  }
+
+  const updatedInvoice = { ...existingInvoice, ...safeUpdates };
 
   const newRow = [
     updatedInvoice.invoiceId,

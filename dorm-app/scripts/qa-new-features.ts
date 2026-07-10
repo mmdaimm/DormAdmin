@@ -12,7 +12,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'owner', password: 'owner123' })
     });
-    const loginData = await loginRes.json();
+    const loginData: any = await loginRes.json();
     
     // Extract cookie from Set-Cookie header
     const setCookieHeader = loginRes.headers.raw()['set-cookie'] || [];
@@ -49,13 +49,13 @@ async function runTests() {
         console.error('Failed POST. Status:', postRes.status, await postRes.text());
         throw new Error('POST failed');
     }
-    const postData = await postRes.json();
+    const postData: any = await postRes.json();
     console.log('✅ POST /api/tenants success:', postData.tenant.firstname, postData.tenant.lineUserId);
 
     // 2. Test GET /api/tenants to verify lineUserId was saved
     console.log('\n2. Testing GET /api/tenants...');
     const getRes = await fetch(`${BASE_URL}/tenants`, { headers: authHeaders });
-    const getData = await getRes.json();
+    const getData: any = await getRes.json();
     const found = getData.tenants.find((t: any) => t.tenantId === postData.tenant.tenantId);
     if (found && found.lineUserId === '@testline123') {
       console.log('✅ GET /api/tenants found the lineUserId successfully.');
@@ -66,7 +66,7 @@ async function runTests() {
     // 3. Test GET /api/accounting/summary?year=all
     console.log('\n3. Testing GET /api/accounting/summary?year=all...');
     const accRes = await fetch(`${BASE_URL}/accounting/summary?year=all`, { headers: authHeaders });
-    const accData = await accRes.json();
+    const accData: any = await accRes.json();
     if (accData.success) {
       console.log('✅ GET /api/accounting/summary?year=all success.');
       console.log('Data sample:', accData.data.slice(0, 2));

@@ -6,7 +6,7 @@ const BASE_URL = 'http://localhost:3000';
 let adminCookie = '';
 let ownerCookie = '';
 
-async function login(username, password) {
+async function login(username: string, password: string): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,8 +22,8 @@ async function login(username, password) {
   return token;
 }
 
-async function fetchApi(endpoint, cookie, method = 'GET', body = null) {
-  const options = {
+async function fetchApi(endpoint: string, cookie: string, method = 'GET', body: any = null) {
+  const options: any = {
     method,
     headers: { 'Cookie': cookie, 'Content-Type': 'application/json' },
   };
@@ -65,7 +65,7 @@ async function runTests() {
     } else {
       console.error(`❌ Admin was blocked from viewing settings! Status: ${adminSettingsGet.status}`);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('❌ Auth test failed:', err.message);
   }
 
@@ -89,7 +89,7 @@ async function runTests() {
     } else {
       console.error(`❌ Dashboard failed! Status: ${dashRes.status}`);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('❌ Dashboard test failed:', err.message);
   }
 
@@ -142,7 +142,7 @@ async function runTests() {
     } else {
       console.error(`❌ Failed to fetch invoices! Status: ${invRes.status}`);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('❌ Payment test failed:', err.message);
   }
 

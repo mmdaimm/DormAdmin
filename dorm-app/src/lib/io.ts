@@ -23,9 +23,12 @@ async function writeMockDb(db: Record<string, string[][]>): Promise<void> {
 }
 
 function parseRange(range: string): { sheetName: string; startRow: number; endRow: number | null; startCol: number; endCol: number | null } {
-  // Example ranges: "Settings!A2:C", "!A2:E", "Invoices!H5:L5"
+  // Example ranges: "Settings!A2:C", "Invoices!H5:L5"
   const [sheetPart, cellPart] = range.split('!');
-  const sheetName = sheetPart || 'Expenses'; // Fallback for !A2:E which doesn't specify sheet name but we know it's Expenses in this app
+  if (!sheetPart) {
+    throw new Error(`Invalid range "${range}": sheet name is required.`);
+  }
+  const sheetName = sheetPart;
   
   const match = cellPart?.match(/([A-Z]+)(\d+)(?::([A-Z]+)(\d+)?)?/);
   if (!match) return { sheetName, startRow: 1, endRow: null, startCol: 0, endCol: null };
@@ -43,14 +46,21 @@ function parseRange(range: string): { sheetName: string; startRow: number; endRo
 export async function getSheetValues(range: string): Promise<any[][]> {
   if (isTestMode) {
     const db = await readMockDb();
-    const { sheetName, startRow, endRow } = parseRange(range);
+    const { sheetName, startRow, endRow, startCol, endCol } = parseRange(range);
     const sheetData = db[sheetName] || [];
     
     // Convert 1-based startRow to 0-based index for slice. (A2 means index 1)
     const startIndex = Math.max(0, startRow - 1);
     const endIndex = endRow ? endRow : sheetData.length;
     
-    return sheetData.slice(startIndex, endIndex);
+    const slicedRows = sheetData.slice(startIndex, endIndex);
+    if (startCol > 0 || endCol !== null) {
+      return slicedRows.map(row => {
+        const colEnd = endCol !== null ? endCol + 1 : row.length;
+        return row.slice(startCol, colEnd);
+      });
+    }
+    return slicedRows;
   }
   
   const response = await sheets.spreadsheets.values.get({

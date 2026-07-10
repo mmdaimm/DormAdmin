@@ -9,6 +9,7 @@ interface CreateTenantBody {
   lastname: string;
   phone: string;
   room_id: string;
+  entryDate: string;
   status?: 'ACTIVE' | 'INACTIVE';
   lineUserId?: string;
 }
