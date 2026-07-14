@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllInvoices, saveInvoice, updateInvoice } from '@/services/sheetService';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { computeInvoiceValues, InvoiceComputeError } from '@/services/invoiceCalculator';
+import { decrypt } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
 interface SaveInvoiceBody {
   roomId: string;
@@ -93,8 +95,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export async function GET(): Promise<NextResponse> {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    const session = await decrypt(token);
+    const role = session?.role || 'admin';
+
     const invoices = await getAllInvoices();
-    return NextResponse.json({ success: true, invoices });
+    return NextResponse.json({ success: true, invoices, role });
   } catch (error) {
     console.error('[GET /api/invoices]', error);
     return NextResponse.json(

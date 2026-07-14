@@ -57,7 +57,7 @@ const NAV_CARDS = [
     iconBg: 'bg-fuchsia-500/20',
     badgeColor: 'text-fuchsia-400',
     glow: 'hover:shadow-fuchsia-900/30',
-    roles: ['owner'],
+    roles: ['owner', 'admin'],
   },
   {
     href: '/settings',

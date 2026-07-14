@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Tenant } from '@/types';
+import { getActiveTenantsForRoom } from '@/lib/tenantUtils';
 
 // ─── Local types ──────────────────────────────────────────────────────────────
-
 interface RoomWithMeta {
   roomId: string;
   roomNumber: string;
@@ -13,6 +13,7 @@ interface RoomWithMeta {
   lineToken: string;
   prevMeter: number;
   lastStatus: string | null;
+  primaryTenantId?: string; // NEW: รองรับคอลัมน์ใหม่จาก API
 }
 
 interface TenantForm {
@@ -34,30 +35,23 @@ const DEFAULT_FORM: TenantForm = {
 };
 
 // ─── Client-side validation ───────────────────────────────────────────────────
-
 const PHONE_RE = /^\d{10}$/;
 const DATE_RE  = /^\d{4}-\d{2}-\d{2}$/;
 
 function validateForm(form: TenantForm): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!form.firstname.trim())
-    errors.firstname = 'กรุณาระบุชื่อ';
-  if (!form.lastname.trim())
-    errors.lastname = 'กรุณาระบุนามสกุล';
-  if (!PHONE_RE.test(form.phone.trim()))
-    errors.phone = 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
+  if (!form.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ';
+  if (!form.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล';
+  if (!PHONE_RE.test(form.phone.trim())) errors.phone = 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
   if (!DATE_RE.test(form.entryDate.trim()) || isNaN(new Date(form.entryDate).getTime()))
     errors.entryDate = 'วันที่ย้ายเข้าต้องอยู่ในรูปแบบ YYYY-MM-DD';
   return errors;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const thb = (n: number) =>
   n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
 interface FieldProps {
   label: string;
   error?: string;
@@ -71,17 +65,13 @@ function Field({ label, error, children, required }: FieldProps) {
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       {children}
-      {error && (
-        <p className="mt-1 text-xs text-red-400">{error}</p>
-      )}
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
   );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-
 export default function TenantsPage() {
-  // ── Data state ───────────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<RoomWithMeta[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,12 +79,15 @@ export default function TenantsPage() {
 
   // ── Modal state ───────────────────────────────────────────────────────────────
   const [modalRoom, setModalRoom] = useState<RoomWithMeta | null>(null);
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
   const [form, setForm] = useState<TenantForm>(DEFAULT_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  
+  // State สำหรับปุ่มตั้งผู้ติดต่อหลัก
+  const [settingPrimary, setSettingPrimary] = useState(false);
 
-  // ── Fetch data ───────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     setDataError('');
@@ -103,13 +96,12 @@ export default function TenantsPage() {
         fetch('/api/rooms'),
         fetch('/api/tenants'),
       ]);
-      if (!roomsRes.ok)   throw new Error(`โหลดข้อมูลห้องล้มเหลว (${roomsRes.status})`);
+      if (!roomsRes.ok) throw new Error(`โหลดข้อมูลห้องล้มเหลว (${roomsRes.status})`);
       if (!tenantsRes.ok) throw new Error(`โหลดข้อมูลผู้เช่าล้มเหลว (${tenantsRes.status})`);
 
-      const roomsData   = await roomsRes.json();
+      const roomsData = await roomsRes.json();
       const tenantsData = await tenantsRes.json();
-
-      if (!roomsData.success)   throw new Error(roomsData.error);
+      if (!roomsData.success) throw new Error(roomsData.error);
       if (!tenantsData.success) throw new Error(tenantsData.error);
 
       setRooms(roomsData.rooms);
@@ -122,57 +114,61 @@ export default function TenantsPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line
     void load();
   }, [load]);
 
-  // ── Build roomId → active tenant map ─────────────────────────────────────────
-  // 1. Get the absolute latest record for each room (last append wins)
-  const latestTenantByRoom = new Map<string, Tenant>();
-  for (const t of tenants) {
-    latestTenantByRoom.set(t.room_id, t);
-  }
-  
-  // 2. Filter to keep only rooms where the LATEST status is ACTIVE
-  const activeTenantByRoom = new Map<string, Tenant>();
-  for (const [roomId, t] of latestTenantByRoom.entries()) {
-    if (t.status === 'ACTIVE') {
-      activeTenantByRoom.set(roomId, t);
+  // ── Build roomId → active tenants map ─────────────────────────────────────────
+  const activeTenantsByRoom = new Map<string, Tenant[]>();
+  for (const room of rooms) {
+    const active = getActiveTenantsForRoom(tenants, room.roomId);
+    if (active.length > 0) {
+      activeTenantsByRoom.set(room.roomId, active);
     }
   }
 
-  // ── Modal open/close ──────────────────────────────────────────────────────────
-  const openModal = (room: RoomWithMeta) => {
-    const existing = activeTenantByRoom.get(room.roomId);
-    setForm(
-      existing
-        ? {
-            firstname: existing.firstname,
-            lastname:  existing.lastname,
-            phone:     existing.phone,
-            entryDate: existing.entryDate,
-            status:    existing.status,
-            lineUserId: existing.lineUserId || '',
-          }
-        : DEFAULT_FORM
-    );
+  // ── Expandable Rows State ─────────────────────────────────────────────────────
+  const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
+  const toggleRoom = (roomId: string) => {
+    setExpandedRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(roomId)) next.delete(roomId);
+      else next.add(roomId);
+      return next;
+    });
+  };
+
+  // ── Modal actions ──────────────────────────────────────────────────────────────
+  const openModalForAdd = (room: RoomWithMeta) => {
+    setForm(DEFAULT_FORM);
+    setEditingTenantId(null);
+    setFieldErrors({});
+    setSaveError('');
+    setModalRoom(room);
+  };
+
+  const openModalForEdit = (room: RoomWithMeta, existing: Tenant) => {
+    setForm({
+      firstname: existing.firstname,
+      lastname: existing.lastname,
+      phone: existing.phone,
+      entryDate: existing.entryDate,
+      status: existing.status,
+      lineUserId: existing.lineUserId || '',
+    });
+    setEditingTenantId(existing.tenantId);
     setFieldErrors({});
     setSaveError('');
     setModalRoom(room);
   };
 
   const closeModal = () => {
-    if (saving) return;
+    if (saving || settingPrimary) return;
     setModalRoom(null);
   };
 
-  // ── Field change ──────────────────────────────────────────────────────────────
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Clear per-field error as user types
     if (fieldErrors[name]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -182,12 +178,40 @@ export default function TenantsPage() {
     }
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────────
+  const handleSetPrimary = async () => {
+    if (!modalRoom || !editingTenantId) return;
+    
+    setSettingPrimary(true);
+    setSaveError('');
+    
+    try {
+      const res = await fetch(`/api/rooms/${modalRoom.roomId}/primary-tenant`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: editingTenantId }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error ?? 'ไม่สามารถตั้งเป็นผู้ติดต่อหลักได้');
+      }
+      
+      // อัปเดตข้อมูลใหม่เพื่อดึง primaryTenantId ล่าสุด
+      await load();
+      
+      // อัปเดต state ของ modalRoom ให้สะท้อนค่าปัจจุบัน (ถ้ายังไม่ปิดจอ)
+      setModalRoom((prev) => prev ? { ...prev, primaryTenantId: editingTenantId } : null);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด');
+    } finally {
+      setSettingPrimary(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalRoom) return;
 
-    // Client-side validation BEFORE any network call
     const errors = validateForm(form);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -198,10 +222,16 @@ export default function TenantsPage() {
     setSaveError('');
 
     try {
+      const payload = {
+        ...form,
+        room_id: modalRoom.roomId,
+        ...(editingTenantId ? { tenantId: editingTenantId } : {}),
+      };
+
       const res = await fetch('/api/tenants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, room_id: modalRoom.roomId }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok && res.status !== 400) {
@@ -209,17 +239,13 @@ export default function TenantsPage() {
       }
 
       const data = await res.json();
-
       if (!data.success) {
-        // Server returned structured fieldErrors — merge into local state
-        if (data.fieldErrors) {
-          setFieldErrors(data.fieldErrors);
-        }
+        if (data.fieldErrors) setFieldErrors(data.fieldErrors);
         throw new Error(data.error ?? 'บันทึกข้อมูลไม่สำเร็จ');
       }
 
-      // Optimistically add the new tenant to local state and close modal
-      setTenants((prev) => [...prev, data.tenant as Tenant]);
+      // Instead of manual local updates which can be tricky with N-1, reload everything
+      await load();
       setModalRoom(null);
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่');
@@ -228,8 +254,8 @@ export default function TenantsPage() {
     }
   };
 
-  // ── Render: loading ───────────────────────────────────────────────────────────
-  if (loading) {
+  // ── Render ──────────────────────────────────────────────────────────────────
+  if (loading && rooms.length === 0) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -240,17 +266,13 @@ export default function TenantsPage() {
     );
   }
 
-  // ── Render: data error ────────────────────────────────────────────────────────
-  if (dataError) {
+  if (dataError && rooms.length === 0) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
         <div className="bg-slate-900 border border-red-800/60 rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
           <p className="text-red-400 text-lg font-semibold mb-2">⚠️ เกิดข้อผิดพลาด</p>
           <p className="text-red-300 text-sm mb-6">{dataError}</p>
-          <button
-            onClick={load}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors mb-3"
-          >
+          <button onClick={load} className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors mb-3">
             ลองใหม่อีกครั้ง
           </button>
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
@@ -261,36 +283,27 @@ export default function TenantsPage() {
     );
   }
 
-  // ── Render: main ──────────────────────────────────────────────────────────────
-  const occupiedCount = rooms.filter((r) => activeTenantByRoom.has(r.roomId)).length;
+  const occupiedCount = rooms.filter((r) => activeTenantsByRoom.has(r.roomId)).length;
+
+  // สำหรับการแสดงปุ่มใน Modal
+  const isEditingPrimary = modalRoom && editingTenantId && (modalRoom.primaryTenantId ?? activeTenantsByRoom.get(modalRoom.roomId)?.[0]?.tenantId) === editingTenantId;
+  const hasMultipleTenants = modalRoom && (activeTenantsByRoom.get(modalRoom.roomId)?.length || 0) > 1;
 
   return (
     <>
       <div className="min-h-screen bg-slate-950 py-10 px-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          {/* Back navigation */}
           <div className="mb-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg
-                         text-sm font-medium text-slate-500 hover:text-slate-300
-                         hover:bg-slate-800 transition-colors"
-            >
+            <Link href="/" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors">
               ← กลับหน้าเมนูหลัก
             </Link>
           </div>
 
-          {/* Page header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-end gap-4 sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">จัดการผู้เช่า</h1>
               <p className="text-slate-400 mt-1 text-sm">
-                มีผู้เช่า{' '}
-                <span className="text-indigo-400 font-semibold">{occupiedCount}</span>
-                {' '}จาก{' '}
-                <span className="text-indigo-400 font-semibold">{rooms.length}</span>
-                {' '}ห้อง
+                มีผู้เช่าห้อง <span className="text-indigo-400 font-semibold">{occupiedCount}</span> จาก <span className="text-indigo-400 font-semibold">{rooms.length}</span> ห้อง
               </p>
             </div>
             <div className="flex gap-3 text-xs">
@@ -303,226 +316,228 @@ export default function TenantsPage() {
             </div>
           </div>
 
-          {/* Room grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {rooms.map((room) => {
-              const tenant = activeTenantByRoom.get(room.roomId);
-              const occupied = !!tenant;
-              return (
-                <div
-                  key={room.roomId}
-                  className={`
-                    bg-slate-900 rounded-2xl border p-5 flex flex-col gap-4
-                    transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5
-                    ${occupied
-                      ? 'border-emerald-700/40 hover:border-emerald-600/60'
-                      : 'border-slate-700 hover:border-slate-600'}
-                  `}
-                >
-                  {/* Room badge + status dot */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${occupied ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-                      <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                        ห้อง {room.roomNumber}
-                      </span>
-                    </div>
-                    <span className="text-xs text-slate-500">
-                      ฿{thb(room.monthlyRent)}/เดือน
-                    </span>
-                  </div>
+          {/* ── Table View ── */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-950/50 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
+                    <th className="px-6 py-4 font-semibold w-32">ห้อง</th>
+                    <th className="px-6 py-4 font-semibold min-w-[200px]">ผู้ติดต่อหลัก</th>
+                    <th className="px-6 py-4 font-semibold min-w-[120px]">เบอร์โทรศัพท์</th>
+                    <th className="px-6 py-4 font-semibold min-w-[120px]">ย้ายเข้า</th>
+                    <th className="px-6 py-4 font-semibold text-right min-w-[100px]">ค่าเช่า/เดือน</th>
+                    <th className="px-6 py-4 font-semibold text-center min-w-[150px]">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {rooms.map((room) => {
+                    const activeTenants = activeTenantsByRoom.get(room.roomId) ?? [];
+                    const occupied = activeTenants.length > 0;
+                    
+                    const primaryContactId = room.primaryTenantId ?? activeTenants[0]?.tenantId;
+                    const primaryTenant = activeTenants.find(t => t.tenantId === primaryContactId) || activeTenants[0];
+                    const otherTenants = activeTenants.filter(t => t.tenantId !== primaryTenant?.tenantId);
+                    
+                    const isExpanded = expandedRooms.has(room.roomId);
 
-                  {/* Tenant info */}
-                  {tenant ? (
-                    <div className="flex-1 space-y-1.5">
-                      <p className="text-base font-bold text-white leading-snug">
-                        {tenant.firstname} {tenant.lastname}
-                      </p>
-                      <p className="text-sm text-slate-400">📱 {tenant.phone}</p>
-                      <p className="text-xs text-slate-500">เข้าพักวันที่ {tenant.entryDate}</p>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center py-3">
-                      <p className="text-slate-600 text-sm">— ยังไม่มีผู้เช่า —</p>
-                    </div>
-                  )}
+                    return (
+                      <React.Fragment key={room.roomId}>
+                        {/* Main Row */}
+                        <tr className={`group transition-colors hover:bg-slate-800/30 ${isExpanded ? 'bg-slate-800/20' : ''}`}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] ${occupied ? 'bg-emerald-400 shadow-emerald-400/50' : 'bg-slate-600'}`} />
+                              <span className="font-bold text-white tracking-wide">{room.roomNumber}</span>
+                            </div>
+                          </td>
+                          
+                          <td className="px-6 py-4">
+                            {occupied ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-slate-200">
+                                  {primaryTenant.firstname} {primaryTenant.lastname}
+                                </span>
+                                <span className="inline-block text-[10px] font-medium bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-700/50">
+                                  ✅ ผู้ติดต่อหลัก
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-slate-600 italic">— ว่าง —</span>
+                            )}
+                          </td>
+                          
+                          <td className="px-6 py-4 text-slate-400 font-mono text-xs">
+                            {occupied ? primaryTenant.phone : '-'}
+                          </td>
+                          
+                          <td className="px-6 py-4 text-slate-400">
+                            {occupied ? primaryTenant.entryDate : '-'}
+                          </td>
+                          
+                          <td className="px-6 py-4 text-right text-slate-300 font-medium">
+                            ฿{thb(room.monthlyRent)}
+                          </td>
+                          
+                          <td className="px-6 py-4">
+                            {occupied ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => openModalForEdit(room, primaryTenant)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-md transition-colors"
+                                  title="แก้ไข"
+                                >
+                                  ✏️
+                                </button>
+                                
+                                {otherTenants.length > 0 && (
+                                  <button
+                                    onClick={() => toggleRoom(room.roomId)}
+                                    className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                                  >
+                                    +{otherTenants.length} คน
+                                    <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                                  </button>
+                                )}
+                                
+                                <button
+                                  onClick={() => openModalForAdd(room)}
+                                  className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-md transition-colors"
+                                  title="เพิ่มผู้เช่าร่วม"
+                                >
+                                  ➕
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex justify-center">
+                                <button
+                                  onClick={() => openModalForAdd(room)}
+                                  className="text-xs font-semibold bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 px-4 py-1.5 rounded-lg transition-all"
+                                >
+                                  ➕ เพิ่มผู้เช่า
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
 
-                  {/* Action button */}
-                  <button
-                    onClick={() => openModal(room)}
-                    className={`
-                      w-full py-2 rounded-xl text-sm font-semibold transition-all duration-200
-                      ${occupied
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/30'}
-                    `}
-                  >
-                    {occupied ? '✏️ แก้ไขข้อมูลผู้เช่า' : '➕ เพิ่มผู้เช่า'}
-                  </button>
-                </div>
-              );
-            })}
+                        {/* Other Tenants Sub-rows */}
+                        {isExpanded && otherTenants.map((tenant, index) => {
+                          const isFirstTenant = tenant.tenantId === activeTenants[0]?.tenantId;
+                          
+                          return (
+                          <tr key={tenant.tenantId} className={`bg-slate-900/50 ${index === otherTenants.length - 1 ? 'border-b border-slate-800/60' : 'border-0'}`}>
+                            <td className="px-6 py-3 border-l-[3px] border-indigo-500/40">
+                              <div className="pl-6 flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                                <span className={`text-xs font-medium ${isFirstTenant ? 'text-indigo-400' : 'text-slate-500'}`}>
+                                  {isFirstTenant ? 'ผู้เช่าหลัก' : 'ผู้เช่าร่วม'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-slate-400">{tenant.firstname} {tenant.lastname}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3 text-slate-500 font-mono text-xs">{tenant.phone}</td>
+                            <td className="px-6 py-3 text-slate-500 text-sm">{tenant.entryDate}</td>
+                            <td className="px-6 py-3"></td>
+                            <td className="px-6 py-3">
+                              <div className="flex justify-center">
+                                <button
+                                  onClick={() => openModalForEdit(room, tenant)}
+                                  className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-slate-800 rounded-md transition-colors"
+                                  title="แก้ไข"
+                                >
+                                  ✏️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )})}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Modal overlay ── */}
       {modalRoom && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
-        >
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
-
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
               <div>
-                <h2 className="text-base font-bold text-white">
-                  {activeTenantByRoom.has(modalRoom.roomId)
-                    ? 'แก้ไขข้อมูลผู้เช่า'
-                    : 'เพิ่มผู้เช่าใหม่'}
-                </h2>
+                <h2 className="text-base font-bold text-white">{editingTenantId ? 'แก้ไขข้อมูลผู้เช่า' : 'เพิ่มผู้เช่าใหม่'}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">ห้อง {modalRoom.roomNumber}</p>
               </div>
-              <button
-                onClick={closeModal}
-                disabled={saving}
-                className="text-slate-500 hover:text-slate-300 text-2xl font-light leading-none disabled:opacity-40"
-              >
-                ×
-              </button>
+              <button onClick={closeModal} disabled={saving || settingPrimary} className="text-slate-500 hover:text-slate-300 text-2xl font-light leading-none disabled:opacity-40">×</button>
             </div>
 
-            {/* Modal form */}
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4" noValidate>
-
-              {/* Firstname + Lastname side by side */}
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="ชื่อ" error={fieldErrors.firstname} required>
-                  <input
-                    name="firstname"
-                    value={form.firstname}
-                    onChange={handleChange}
-                    placeholder="สมชาย"
-                    className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
-                                placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                                focus:border-transparent transition
-                                ${fieldErrors.firstname ? 'border-red-500' : 'border-slate-600'}`}
-                  />
-                </Field>
-
-                <Field label="นามสกุล" error={fieldErrors.lastname} required>
-                  <input
-                    name="lastname"
-                    value={form.lastname}
-                    onChange={handleChange}
-                    placeholder="ใจดี"
-                    className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
-                                placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                                focus:border-transparent transition
-                                ${fieldErrors.lastname ? 'border-red-500' : 'border-slate-600'}`}
-                  />
-                </Field>
-              </div>
-
-              {/* Phone */}
-              <Field label="เบอร์โทรศัพท์" error={fieldErrors.phone} required>
-                <input
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="0812345678"
-                  maxLength={10}
-                  inputMode="numeric"
-                  className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
-                              placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                              focus:border-transparent transition font-mono
-                              ${fieldErrors.phone ? 'border-red-500' : 'border-slate-600'}`}
-                />
-              </Field>
-
-              {/* Line ID */}
-              <Field label="Line ID (ถ้ามี)" error={fieldErrors.lineUserId}>
-                <input
-                  name="lineUserId"
-                  value={form.lineUserId}
-                  onChange={handleChange}
-                  placeholder="เช่น @dorm123 หรือ UserID"
-                  className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
-                              placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                              focus:border-transparent transition
-                              ${fieldErrors.lineUserId ? 'border-red-500' : 'border-slate-600'}`}
-                />
-              </Field>
-
-              {/* Entry date */}
-              <Field label="วันที่ย้ายเข้า" error={fieldErrors.entryDate} required>
-                <input
-                  type="date"
-                  name="entryDate"
-                  value={form.entryDate}
-                  onChange={handleChange}
-                  className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white
-                              focus:outline-none focus:ring-2 focus:ring-indigo-500
-                              focus:border-transparent transition
-                              ${fieldErrors.entryDate ? 'border-red-500' : 'border-slate-600'}`}
-                />
-              </Field>
-
-              {/* Status */}
-              <Field label="สถานะ">
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2
-                             text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500
-                             focus:border-transparent transition"
-                >
-                  <option value="ACTIVE">ACTIVE — กำลังพักอาศัย</option>
-                  <option value="INACTIVE">INACTIVE — ย้ายออกแล้ว</option>
-                </select>
-              </Field>
-
-              {/* Save error */}
-              {saveError && (
-                <div className="bg-red-950/50 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-300">
-                  ⚠️ {saveError}
+            <div className="overflow-y-auto px-6 py-5">
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="ชื่อ" error={fieldErrors.firstname} required>
+                    <input name="firstname" value={form.firstname} onChange={handleChange} placeholder="สมชาย" className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${fieldErrors.firstname ? 'border-red-500' : 'border-slate-600'}`} />
+                  </Field>
+                  <Field label="นามสกุล" error={fieldErrors.lastname} required>
+                    <input name="lastname" value={form.lastname} onChange={handleChange} placeholder="ใจดี" className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${fieldErrors.lastname ? 'border-red-500' : 'border-slate-600'}`} />
+                  </Field>
                 </div>
-              )}
 
-              {/* Buttons */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={saving}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300
-                             hover:bg-slate-800 text-sm font-medium transition-colors
-                             disabled:opacity-40"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl
-                             bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700
-                             disabled:text-slate-500 text-white font-semibold text-sm
-                             transition-all duration-200 shadow-lg shadow-indigo-900/40
-                             disabled:shadow-none disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      กำลังบันทึก…
-                    </>
-                  ) : (
-                    '💾 บันทึก'
-                  )}
-                </button>
-              </div>
-            </form>
+                <Field label="เบอร์โทรศัพท์" error={fieldErrors.phone} required>
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="0812345678" maxLength={10} inputMode="numeric" className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-mono ${fieldErrors.phone ? 'border-red-500' : 'border-slate-600'}`} />
+                </Field>
+
+                <Field label="Line ID (ถ้ามี)" error={fieldErrors.lineUserId}>
+                  <input name="lineUserId" value={form.lineUserId} onChange={handleChange} placeholder="เช่น @dorm123 หรือ UserID" className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${fieldErrors.lineUserId ? 'border-red-500' : 'border-slate-600'}`} />
+                </Field>
+
+                <Field label="วันที่ย้ายเข้า" error={fieldErrors.entryDate} required>
+                  <input type="date" name="entryDate" value={form.entryDate} onChange={handleChange} className={`w-full bg-slate-800 border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${fieldErrors.entryDate ? 'border-red-500' : 'border-slate-600'}`} />
+                </Field>
+
+                <Field label="สถานะ">
+                  <select name="status" value={form.status} onChange={handleChange} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    <option value="ACTIVE">ACTIVE — กำลังพักอาศัย</option>
+                    <option value="INACTIVE">INACTIVE — ย้ายออกแล้ว</option>
+                  </select>
+                </Field>
+
+                {/* ปุ่มตั้งผู้ติดต่อหลัก (ข) แสดงเฉพาะตอนแก้ไขข้อมูล และห้องนั้นมีผู้อาศัยมากกว่า 1 คน */}
+                {editingTenantId && hasMultipleTenants && (
+                  <div className="pt-2 pb-1 border-t border-slate-700/50 mt-2">
+                    <button
+                      type="button"
+                      onClick={handleSetPrimary}
+                      disabled={isEditingPrimary || settingPrimary}
+                      className={`w-full py-2 rounded-xl text-sm font-medium transition-colors border
+                        ${isEditingPrimary 
+                          ? 'bg-slate-800/50 text-emerald-500/70 border-emerald-800/30 cursor-not-allowed' 
+                          : 'bg-emerald-900/30 hover:bg-emerald-800/50 text-emerald-400 border-emerald-800'}`}
+                    >
+                      {settingPrimary 
+                        ? '⏳ กำลังตั้งค่า...' 
+                        : isEditingPrimary 
+                          ? '✅ เป็นผู้ติดต่อหลักอยู่แล้ว' 
+                          : '⭐ ตั้งเป็นผู้ติดต่อหลักห้องนี้'}
+                    </button>
+                  </div>
+                )}
+
+                {saveError && <div className="bg-red-950/50 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-300">⚠️ {saveError}</div>}
+
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={closeModal} disabled={saving || settingPrimary} className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors disabled:opacity-40">ยกเลิก</button>
+                  <button type="submit" disabled={saving || settingPrimary} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-indigo-900/40 disabled:shadow-none disabled:cursor-not-allowed">
+                    {saving ? 'กำลังบันทึก…' : '💾 บันทึก'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

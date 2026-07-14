@@ -1,20 +1,58 @@
 import type { Tenant } from '@/types';
 
 /**
- * Reduces a tenant list to the single active tenant for a room, following
- * the "Last Write Wins" rule required by this project's Append-Only
- * Tenants sheet architecture (see ADR in project docs).
+ * Reduces a tenant list to each tenant's latest state, keyed by tenantId
+ * (not room_id). This is the N-1-aware version of "Last Write Wins" — it
+ * tracks each PERSON's latest record independently, so editing one
+ * co-tenant's info doesn't affect another co-tenant's record in the same
+ * room.
  *
- * Always takes the array's LAST matching record for the room (the most
- * recently appended row) before checking status — never the first ACTIVE
- * match via .find(), which would incorrectly return a stale record if the
- * tenant later moved out and a newer INACTIVE row was appended after it.
- *
- * Returns null if the room has no tenant history, or if the latest record
- * for the room is not ACTIVE (i.e. the room is currently vacant).
+ * Requires tenantId to be stable across edits for the same person (the
+ * backend must reuse the same tenantId when updating an existing tenant,
+ * not generate a new one — see /api/tenants POST).
  */
-export function getActiveTenantForRoom(tenants: Tenant[], roomId: string): Tenant | null {
-  const roomTenants = tenants.filter((t) => t.room_id === roomId);
-  const latestTenant = roomTenants[roomTenants.length - 1] ?? null;
-  return latestTenant && latestTenant.status === 'ACTIVE' ? latestTenant : null;
+function getLatestStateByTenantId(tenants: Tenant[]): Map<string, Tenant> {
+  const map = new Map<string, Tenant>();
+  for (const t of tenants) {
+    map.set(t.tenantId, t);
+  }
+  return map;
+}
+
+/**
+ * Returns every ACTIVE tenant currently living in a room, sorted by
+ * entryDate ascending (earliest move-in date first — the "primary"
+ * tenant, by convention, is index 0).
+ *
+ * Returns an empty array if the room is vacant.
+ */
+export function getActiveTenantsForRoom(tenants: Tenant[], roomId: string): Tenant[] {
+  const latest = getLatestStateByTenantId(tenants);
+  return Array.from(latest.values())
+    .filter((t) => t.room_id === roomId && t.status === 'ACTIVE')
+    .sort((a, b) => a.entryDate.localeCompare(b.entryDate));
+}
+
+/**
+ * Returns the single "primary" active tenant for a room — the one with
+ * the earliest entryDate among current ACTIVE tenants. For rooms with
+ * exactly one tenant (the common case today), this behaves identically
+ * to before. For rooms with multiple tenants (N-1), this returns the
+ * primary contract-holder, used anywhere the system still expects a
+ * single tenant (LINE notifications, invoice-creation eligibility checks).
+ *
+ * Returns null if the room has no tenant history, or if no tenant record
+ * for the room is currently ACTIVE (the room is vacant).
+ */
+export function getActiveTenantForRoom(
+  tenants: Tenant[],
+  roomId: string,
+  primaryTenantId?: string
+): Tenant | null {
+  const active = getActiveTenantsForRoom(tenants, roomId);
+  if (primaryTenantId) {
+    const designated = active.find((t) => t.tenantId === primaryTenantId);
+    if (designated) return designated;
+  }
+  return active[0] ?? null;
 }

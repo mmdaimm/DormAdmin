@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { decrypt } from '@/lib/auth';
 
 const publicRoutes = ['/login'];
-const adminRestrictedRoutes = ['/settings', '/tenants', '/invoice-manager', '/accounting'];
+const adminRestrictedRoutes = ['/settings', '/tenants', '/accounting'];
 const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants']; // Allows GET, blocks others
 const adminStrictBlockedApiRoutes = ['/api/accounting']; // Blocks ALL methods
 const adminMethodRestrictions: Record<string, string[]> = {

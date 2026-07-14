@@ -12,6 +12,8 @@ export interface Room {
   creditBalance?: number;
   /** Deposit amount paid by the tenant. */
   depositAmount?: number;
+  /** The primary tenant contact for the room (tenantId). */
+  primaryTenantId?: string;
 }
 
 // ─── Tenant ───────────────────────────────────────────────────────────────────

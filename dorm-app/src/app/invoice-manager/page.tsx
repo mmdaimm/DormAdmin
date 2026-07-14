@@ -6,7 +6,9 @@ import Link from 'next/link';
 export default function InvoiceManagerPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [tenants, setTenants] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string>('admin');
   
   // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -14,24 +16,38 @@ export default function InvoiceManagerPage() {
   const [saving, setSaving] = useState(false);
 
   // Filter & Sort State
+  const currentYearStr = new Date().getFullYear().toString();
   const [selectedRoom, setSelectedRoom] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<'DESC' | 'ASC'>('DESC');
+  const [selectedYear, setSelectedYear] = useState<string>(currentYearStr);
+  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
+  
+  const yearOptions = ['ALL', currentYearStr, (Number(currentYearStr) - 1).toString(), (Number(currentYearStr) - 2).toString()];
+  const monthOptions = Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0'));
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [invRes, tenRes] = await Promise.all([
+      const [invRes, tenRes, roomsRes] = await Promise.all([
         fetch('/api/invoices'),
-        fetch('/api/tenants') // We assume this endpoint exists and returns { success: true, tenants: [...] }
+        fetch('/api/tenants'),
+        fetch('/api/rooms')
       ]);
       const invData = await invRes.json();
       const tenData = await tenRes.json();
+      const roomsData = await roomsRes.json();
 
       if (invData.success) {
         setInvoices(invData.invoices);
+        if (invData.role) {
+          setUserRole(invData.role);
+        }
       }
       if (tenData.success) {
         setTenants(tenData.tenants);
+      }
+      if (roomsData.success) {
+        setRooms(roomsData.rooms);
       }
     } catch (err) {
       console.error(err);
@@ -106,6 +122,14 @@ export default function InvoiceManagerPage() {
       }
     }
 
+    if (selectedYear !== 'ALL') {
+      result = result.filter(inv => inv.period.startsWith(selectedYear));
+    }
+
+    if (selectedMonth !== 'ALL') {
+      result = result.filter(inv => inv.period.endsWith(`-${selectedMonth}`));
+    }
+
     result.sort((a, b) => {
       if (sortOrder === 'DESC') {
         return b.period.localeCompare(a.period);
@@ -115,7 +139,7 @@ export default function InvoiceManagerPage() {
     });
 
     return result;
-  }, [invoices, tenants, selectedRoom, sortOrder]);
+  }, [invoices, tenants, selectedRoom, sortOrder, selectedYear, selectedMonth]);
 
 
   if (loading) {
@@ -153,7 +177,34 @@ export default function InvoiceManagerPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-400">เรียงตามเดือน:</label>
+            <label className="text-sm font-medium text-slate-400">ปี:</label>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+            >
+              {yearOptions.map(y => (
+                <option key={y} value={y}>{y === 'ALL' ? 'ทั้งหมด' : y}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-400">เดือน:</label>
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+            >
+              <option value="ALL">ทั้งหมด</option>
+              {monthOptions.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <label className="text-sm font-medium text-slate-400">เรียง:</label>
             <select 
               value={sortOrder} 
               onChange={(e) => setSortOrder(e.target.value as 'DESC' | 'ASC')}
@@ -173,6 +224,8 @@ export default function InvoiceManagerPage() {
                 <th className="py-3 px-4 font-medium">ห้อง</th>
                 <th className="py-3 px-4 font-medium text-right">ไฟ (ยูนิต)</th>
                 <th className="py-3 px-4 font-medium text-right">น้ำ (บาท)</th>
+                <th className="py-3 px-4 font-medium text-right text-indigo-300">ค่าห้อง</th>
+                <th className="py-3 px-4 font-medium text-right text-indigo-400">รวม(ห้อง+น้ำ+ไฟ)</th>
                 <th className="py-3 px-4 font-medium text-right">ยอดค้างยกมา</th>
                 <th className="py-3 px-4 font-medium text-right text-emerald-400">ยอดรวมสุทธิ</th>
                 <th className="py-3 px-4 font-medium text-right">ยอดที่จ่ายแล้ว</th>
@@ -181,12 +234,47 @@ export default function InvoiceManagerPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedInvoices.map(inv => (
+              {filteredAndSortedInvoices.map(inv => {
+                const room = rooms.find(r => r.roomId === inv.roomId);
+                const baseRent = room?.monthlyRent || 0;
+                const actualRent = baseRent - (inv.proratedAmount || 0);
+                
+                let displayStatus = inv.status;
+                let statusBadgeClasses = '';
+                
+                if (inv.status !== 'PAID') {
+                  const isClearedLater = invoices.some(laterInv => {
+                    if (laterInv.roomId !== inv.roomId || laterInv.period <= inv.period) return false;
+                    const grandTotal = (laterInv.totalAmount ?? 0) + (laterInv.remainingArrears ?? 0) - (laterInv.creditApplied ?? 0);
+                    return (laterInv.paidAmount ?? 0) >= grandTotal;
+                  });
+                  if (isClearedLater) {
+                    displayStatus = 'CLEARED';
+                  }
+                }
+                
+                if (displayStatus === 'PAID') {
+                  statusBadgeClasses = 'bg-emerald-900/30 text-emerald-400 border-emerald-800';
+                } else if (displayStatus === 'CLEARED') {
+                  statusBadgeClasses = 'bg-slate-800 text-slate-400 border-slate-700';
+                  displayStatus = 'ยกยอดไปแล้ว';
+                } else if (displayStatus === 'PARTIAL') {
+                  statusBadgeClasses = 'bg-amber-900/30 text-amber-400 border-amber-800';
+                } else {
+                  statusBadgeClasses = 'bg-rose-900/30 text-rose-400 border-rose-800';
+                }
+                
+                return (
                 <tr key={inv.invoiceId} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
-                  <td className="py-3 px-4 font-medium text-white">{inv.period}</td>
+                  <td className="py-3 px-4 font-medium text-white">
+                    {inv.period}
+                    {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded border border-amber-700/50">ส่วนลดแรกเข้า</span>}
+                  </td>
                   <td className="py-3 px-4">{inv.roomId}</td>
                   <td className="py-3 px-4 text-right">{inv.currMeter - inv.prevMeter}</td>
                   <td className="py-3 px-4 text-right">{formatThB(inv.waterBill)}</td>
+                  <td className="py-3 px-4 text-right text-indigo-300">{formatThB(actualRent)}</td>
+                  <td className="py-3 px-4 text-right font-medium text-indigo-400">{formatThB(inv.totalAmount)}</td>
                   <td className="py-3 px-4 text-right text-rose-400">{formatThB(inv.remainingArrears ?? 0)}</td>
                   <td className="py-3 px-4 text-right font-bold text-emerald-400">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
                   
@@ -211,19 +299,23 @@ export default function InvoiceManagerPage() {
                     <>
                       <td className="py-3 px-4 text-right text-emerald-400">{formatThB(inv.paidAmount || 0)}</td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`px-2 py-1 text-xs rounded-full border ${inv.status === 'PAID' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-800' : inv.status === 'PARTIAL' ? 'bg-amber-900/30 text-amber-400 border-amber-800' : 'bg-rose-900/30 text-rose-400 border-rose-800'}`}>
-                          {inv.status}
+                        <span className={`px-2 py-1 text-xs rounded-full border ${statusBadgeClasses}`} title={inv.status !== displayStatus ? `สถานะเดิม: ${inv.status}` : ''}>
+                          {displayStatus}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <button onClick={() => handleEdit(inv)} className="text-indigo-400 hover:text-indigo-300 text-sm">
-                          แก้ไข
-                        </button>
+                        {userRole === 'owner' ? (
+                          <button onClick={() => handleEdit(inv)} className="text-indigo-400 hover:text-indigo-300 text-sm">
+                            แก้ไข
+                          </button>
+                        ) : (
+                          <span className="text-slate-600 text-xs">-</span>
+                        )}
                       </td>
                     </>
                   )}
                 </tr>
-              ))}
+              )})}
               
               {filteredAndSortedInvoices.length === 0 && (
                 <tr>

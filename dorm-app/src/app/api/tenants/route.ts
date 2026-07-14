@@ -11,6 +11,10 @@ interface CreateTenantBody {
   room_id: string;
   entryDate: string;
   status?: 'ACTIVE' | 'INACTIVE';
+  /** If present, this update is for an EXISTING tenant (reuse this ID).
+   *  If absent, this creates a NEW tenant (generate a fresh ID). */
+  tenantId?: string;
+  /** Optional. Free-text — no format validation, same as elsewhere in the system. */
   lineUserId?: string;
 }
 
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { firstname, lastname, phone, room_id, entryDate, status = 'ACTIVE', lineUserId } = body;
+  const { firstname, lastname, phone, room_id, entryDate, status = 'ACTIVE', tenantId, lineUserId } = body;
 
   // 2. Validate required string fields ────────────────────────────────────────
   const fieldErrors: Record<string, string> = {};
@@ -123,15 +127,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 4. Build and persist the tenant record ────────────────────────────────────
+  // Reuse the caller-supplied tenantId when editing an existing tenant, so
+  // getLatestStateByTenantId() in tenantUtils.ts can correctly identify this
+  // as an update to the same person rather than a new co-tenant.
   const tenant: Tenant = {
-    tenantId:  `T-${Date.now()}`,
+    tenantId:  tenantId?.trim() || `T-${Date.now()}`,
     firstname: firstname.trim(),
     lastname:  lastname.trim(),
     phone:     phone.trim(),
     room_id:   room_id.trim(),
     entryDate: entryDate.trim(),
     status,
-    lineUserId: lineUserId?.trim(),
+    // Empty string → undefined, consistent with how rowToTenant() treats a
+    // blank Column H cell elsewhere in the system (never persist "" as a
+    // meaningful value for this field).
+    lineUserId: lineUserId?.trim() || undefined,
   };
 
   try {

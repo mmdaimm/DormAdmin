@@ -47,7 +47,7 @@ export async function getRates(): Promise<Rates> {
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
 export async function getRooms(): Promise<Room[]> {
-  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:F`);
+  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:G`);
 
   return rows
     .filter((row) => row[0])
@@ -58,7 +58,24 @@ export async function getRooms(): Promise<Room[]> {
       lineToken: String(row[3] ?? '').trim(),
       creditBalance: Math.max(0, parseFloat(row[4] as string) || 0),
       depositAmount: parseFloat(row[5] as string) || 0,
+      primaryTenantId: row[6] ? String(row[6]).trim() : undefined,
     }));
+}
+
+/**
+ * Sets (or clears, if tenantId is undefined) the designated primary contact
+ * for a room. Rooms is update-in-place (not append-only like Tenants) —
+ * this overwrites Column G directly, mirroring how credit_balance updates
+ * work elsewhere in this file.
+ */
+export async function setPrimaryTenant(roomId: string, tenantId: string | undefined): Promise<void> {
+  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:G`);
+  const rowIndex = rows.findIndex((r) => String(r[0] ?? '').trim() === roomId);
+  if (rowIndex === -1) {
+    throw new Error(`Room with roomId "${roomId}" not found.`);
+  }
+  const sheetRow = rowIndex + 2;
+  await updateSheetValues(`${SHEET_ROOMS}!G${sheetRow}`, [[tenantId ?? '']]);
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────

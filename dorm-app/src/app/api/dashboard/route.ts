@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRooms, getAllInvoices, getTenants } from '@/services/sheetService';
+import { getActiveTenantsForRoom } from '@/lib/tenantUtils';
 import type { Invoice, Room, Tenant } from '@/types';
 
 // ─── Response shapes ──────────────────────────────────────────────────────────
@@ -37,23 +38,19 @@ export async function GET(): Promise<NextResponse> {
     // ── Build lookup maps ────────────────────────────────────────────────────
     const roomById = new Map<string, Room>(rooms.map((r) => [r.roomId, r]));
 
-    // 1. Get the absolute latest record for each room (last append wins)
-    const latestTenantByRoom = new Map<string, Tenant>();
-    for (const t of tenants) {
-      latestTenantByRoom.set(t.room_id, t);
-    }
-    
-    // 2. Filter to keep only rooms where the LATEST status is ACTIVE
-    const activeTenantByRoom = new Map<string, Tenant>();
-    for (const [roomId, t] of latestTenantByRoom.entries()) {
-      if (t.status === 'ACTIVE') {
-        activeTenantByRoom.set(roomId, t);
+    // Get every ACTIVE tenant for each room (N-1 aware) — build a lookup
+    // map from roomId to the array of current tenants for that room.
+    const activeTenantsByRoom = new Map<string, Tenant[]>();
+    for (const room of rooms) {
+      const active = getActiveTenantsForRoom(tenants, room.roomId);
+      if (active.length > 0) {
+        activeTenantsByRoom.set(room.roomId, active);
       }
     }
 
     // ── KPIs ─────────────────────────────────────────────────────────────────
     const occupiedRooms = rooms.filter((r) =>
-      activeTenantByRoom.has(r.roomId)
+      activeTenantsByRoom.has(r.roomId)
     ).length;
 
     const openInvoices = allInvoices.filter(
@@ -97,9 +94,9 @@ export async function GET(): Promise<NextResponse> {
       .sort((a, b) => b.period.localeCompare(a.period))
       .map((inv) => {
         const room = roomById.get(inv.roomId);
-        const tenant = activeTenantByRoom.get(inv.roomId);
-        const tenantName = tenant
-          ? `${tenant.firstname} ${tenant.lastname}`.trim()
+        const activeTenants = activeTenantsByRoom.get(inv.roomId) ?? [];
+        const tenantName = activeTenants.length > 0
+          ? activeTenants.map((t) => `${t.firstname} ${t.lastname}`.trim()).join(', ')
           : 'ว่าง';
         return {
           ...inv,

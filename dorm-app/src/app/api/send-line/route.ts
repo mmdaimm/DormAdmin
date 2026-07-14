@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
 
     // 2. Identify target Room/Tenant and resolve LINE User ID server-side
     const [tenants, rooms] = await Promise.all([getTenants(), getRooms()]);
-    const tenant = getActiveTenantForRoom(tenants, invoice.roomId);
+    const tenant = getActiveTenantForRoom(
+      tenants,
+      invoice.roomId,
+      rooms.find((r) => r.roomId === invoice.roomId)?.primaryTenantId
+    );
     const room = rooms.find((r) => r.roomId === invoice.roomId);
 
     if (!tenant?.lineUserId) {

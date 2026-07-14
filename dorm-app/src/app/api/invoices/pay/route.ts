@@ -56,7 +56,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       const [tenants, rooms] = await Promise.all([getTenants(), getRooms()]);
 
-      const tenant = getActiveTenantForRoom(tenants, roomId);
+      const tenant = getActiveTenantForRoom(
+        tenants,
+        roomId,
+        rooms.find((r) => r.roomId === roomId)?.primaryTenantId
+      );
       
       const room = rooms.find((r) => r.roomId === roomId);
       const roomNumber = room?.roomNumber ?? roomId;
