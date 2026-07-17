@@ -10,6 +10,7 @@ const SHEET_INVOICES = 'Invoices';
 const SHEET_TENANTS = 'Tenants';
 const SHEET_USERS = 'Users';
 const SHEET_EXPENSES = 'Expenses';
+const SHEET_AUDIT_LOG = 'AuditLog';
 
 // ─── Rates ────────────────────────────────────────────────────────────────────
 
@@ -160,7 +161,7 @@ const UPDATABLE_INVOICE_FIELDS = ['status', 'paidAmount', 'arrears'] as const;
 export async function updateInvoice(
   invoiceId: string,
   updates: Partial<Pick<Invoice, typeof UPDATABLE_INVOICE_FIELDS[number]>>
-): Promise<Invoice | null> {
+): Promise<{ old: Invoice; updated: Invoice } | null> {
   const rows = await getSheetValues(`${SHEET_INVOICES}!A2:P`);
   const rowIndex = rows.findIndex(row => String(row[0] ?? '').trim() === invoiceId);
   if (rowIndex === -1) return null;
@@ -198,7 +199,22 @@ export async function updateInvoice(
   const sheetRow = rowIndex + 2;
   await updateSheetValues(`${SHEET_INVOICES}!A${sheetRow}:P${sheetRow}`, [newRow]);
 
-  return updatedInvoice;
+  return { old: existingInvoice, updated: updatedInvoice };
+}
+
+/**
+ * Appends an audit trail entry to the AuditLog sheet. Append-only, matching
+ * this project's design philosophy — audit entries are never edited or
+ * deleted after the fact. Column layout: A=timestamp (ISO), B=action,
+ * C=details, D=performedBy.
+ */
+export async function logAuditAction(
+  action: string,
+  details: string,
+  performedBy: string
+): Promise<void> {
+  const row = [new Date().toISOString(), action, details, performedBy];
+  await appendSheetValues(`${SHEET_AUDIT_LOG}!A1`, [row]);
 }
 
 // ─── Tenants ──────────────────────────────────────────────────────────────────

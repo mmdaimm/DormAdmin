@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
 import LogoutButton from '@/components/LogoutButton';
+import DashboardKPI from '@/components/DashboardKPI';
 
 export const metadata: Metadata = {
   title: 'DormAdmin | เมนูหลัก',
@@ -106,8 +107,7 @@ export default async function HomePage() {
         <LogoutButton />
       </div>
 
-      {/* ── Hero Header ── */}
-      <header className="pt-12 pb-10 px-4 text-center">
+      <header className="pt-12 pb-6 px-4 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl
                         bg-indigo-600/20 border border-indigo-500/30 mb-6">
           <span className="text-3xl">🏠</span>
@@ -119,6 +119,11 @@ export default async function HomePage() {
           ระบบจัดการหอพัก — เลือกฟังก์ชันที่ต้องการใช้งาน
         </p>
       </header>
+
+      {/* ── KPI Dashboard ── */}
+      <section className="px-4 max-w-4xl mx-auto w-full">
+        <DashboardKPI />
+      </section>
 
       {/* ── Navigation Grid ── */}
       <main className="flex-1 px-4 pb-16">

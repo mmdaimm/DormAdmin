@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllInvoices, saveInvoice, updateInvoice } from '@/services/sheetService';
+import { getAllInvoices, saveInvoice, updateInvoice, logAuditAction } from '@/services/sheetService';
 import { sheets, SPREADSHEET_ID } from '@/lib/google-sheets';
 import { computeInvoiceValues, InvoiceComputeError } from '@/services/invoiceCalculator';
 import { decrypt } from '@/lib/auth';
@@ -122,11 +122,46 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ success: false, error: 'Missing invoiceId' }, { status: 400 });
     }
     
-    const updated = await updateInvoice(invoiceId, updates);
+    const result = await updateInvoice(invoiceId, updates);
     
-    if (!updated) {
+    if (!result) {
       return NextResponse.json({ success: false, error: 'Invoice not found' }, { status: 404 });
     }
+
+    const { old: oldInvoice, updated } = result;
+
+    // Fire-and-forget audit log — must never block or fail the response.
+    // The invoice is already saved successfully at this point; a logging
+    // failure must not be reported back to the client as an error.
+    void (async () => {
+      try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('auth_token')?.value;
+        const session = await decrypt(token);
+        const performedBy = session?.username ?? 'unknown';
+
+        const changes: string[] = [];
+        if (oldInvoice.status !== updated.status) {
+          changes.push(`สถานะ: ${oldInvoice.status} → ${updated.status}`);
+        }
+        if (oldInvoice.paidAmount !== updated.paidAmount) {
+          changes.push(`ยอดจ่าย: ${oldInvoice.paidAmount} → ${updated.paidAmount}`);
+        }
+        if (oldInvoice.arrears !== updated.arrears) {
+          changes.push(`ยอดค้าง: ${oldInvoice.arrears} → ${updated.arrears}`);
+        }
+
+        if (changes.length > 0) {
+          await logAuditAction(
+            'MANUAL_INVOICE_EDIT',
+            `แก้ไขบิล ${invoiceId}: ${changes.join(', ')}`,
+            performedBy
+          );
+        }
+      } catch (logError) {
+        console.error('[PUT /api/invoices] Audit log failed:', logError);
+      }
+    })();
     
     return NextResponse.json({ success: true, invoice: updated });
   } catch (error) {
