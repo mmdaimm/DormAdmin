@@ -70,7 +70,7 @@ export async function computeInvoiceValues(
   }
 
   const previousInvoices = roomInvoices
-    .filter((inv) => inv.period !== period && inv.status !== ('CANCELLED' as any) && inv.status !== ('VOID' as any))
+    .filter((inv) => inv.period < period && inv.status !== ('CANCELLED' as any) && inv.status !== ('VOID' as any))
     .sort((a, b) => b.period.localeCompare(a.period));
   const lastInvoice = previousInvoices.length > 0 ? previousInvoices[0] : null;
 

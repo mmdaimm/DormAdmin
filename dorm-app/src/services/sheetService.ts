@@ -121,7 +121,11 @@ export async function getAllInvoices(): Promise<Invoice[]> {
 export function calculateArrears(lastInvoice: Invoice | null): number {
   if (!lastInvoice) return 0;
   switch (lastInvoice.status) {
-    case 'UNPAID': return lastInvoice.totalAmount;
+    case 'UNPAID': 
+      if (lastInvoice.isNewFormat) {
+        return lastInvoice.totalAmount + (lastInvoice.remainingArrears ?? 0) - (lastInvoice.creditApplied ?? 0);
+      }
+      return lastInvoice.totalAmount;
     case 'PARTIAL': return lastInvoice.arrears;
     case 'PAID': default: return 0;
   }
