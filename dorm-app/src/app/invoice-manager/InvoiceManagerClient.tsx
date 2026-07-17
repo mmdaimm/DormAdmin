@@ -211,9 +211,12 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
               className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
             >
               <option value="ALL">ทั้งหมด (All Rooms)</option>
-              {uniqueRooms.map(r => (
-                <option key={r} value={r}>ห้อง {r} (ผู้เช่าล่าสุด)</option>
-              ))}
+              {uniqueRooms.map(r => {
+                const roomObj = rooms.find(room => room.roomId === r);
+                return (
+                  <option key={r} value={r}>ห้อง {roomObj?.roomNumber || r}</option>
+                );
+              })}
             </select>
           </div>
 
@@ -318,7 +321,7 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
                     {inv.period}
                     {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded border border-amber-700/50">ส่วนลดแรกเข้า</span>}
                   </td>
-                  <td className="py-3 px-4">{inv.roomId}</td>
+                  <td className="py-3 px-4">{room?.roomNumber || inv.roomId}</td>
                   <td className="py-3 px-4 text-right">{inv.currMeter - inv.prevMeter}</td>
                   <td className="py-3 px-4 text-right">{formatThB(inv.waterBill)}</td>
                   <td className="py-3 px-4 text-right text-indigo-300">{formatThB(actualRent)}</td>
