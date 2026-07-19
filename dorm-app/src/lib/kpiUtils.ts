@@ -57,9 +57,15 @@ export function calculateIncomeTrend(invoices: Invoice[], monthsBack: number = 3
   }
 
   return periods.map((period) => {
+    // Accrual Basis: recognize revenue at billing time (grandTotal), not at
+    // payment time (paidAmount) — matches the formula used everywhere else
+    // in the system (Spec 3.1: total_amount + old_arrears - credit_applied).
     const income = invoices
       .filter((inv) => inv.period === period)
-      .reduce((sum, inv) => sum + (inv.paidAmount ?? 0), 0);
+      .reduce((sum, inv) => {
+        const grandTotal = (inv.totalAmount ?? 0) + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0);
+        return sum + grandTotal;
+      }, 0);
     return { period, income };
   });
 }
