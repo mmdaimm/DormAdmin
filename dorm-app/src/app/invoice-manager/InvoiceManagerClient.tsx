@@ -45,7 +45,7 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
 
       return [
         inv.period,
-        inv.roomId,
+        room?.roomNumber || inv.roomId,
         inv.currMeter - inv.prevMeter,
         inv.waterBill,
         actualRent,

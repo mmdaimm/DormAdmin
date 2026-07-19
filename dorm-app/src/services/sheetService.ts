@@ -122,10 +122,9 @@ export function calculateArrears(lastInvoice: Invoice | null): number {
   if (!lastInvoice) return 0;
   switch (lastInvoice.status) {
     case 'UNPAID': 
-      if (lastInvoice.isNewFormat) {
-        return lastInvoice.totalAmount + (lastInvoice.remainingArrears ?? 0) - (lastInvoice.creditApplied ?? 0);
-      }
-      return lastInvoice.totalAmount;
+      // Grand Total ของบิลก่อนหน้า = total_amount + old_arrears - credit_applied
+      // (Spec 3.1) — ไม่มีข้อยกเว้นสำหรับ "รูปแบบเก่า" เหมือนทุกจุดอื่นในระบบ
+      return lastInvoice.totalAmount + (lastInvoice.remainingArrears ?? 0) - (lastInvoice.creditApplied ?? 0);
     case 'PARTIAL': return lastInvoice.arrears;
     case 'PAID': default: return 0;
   }
