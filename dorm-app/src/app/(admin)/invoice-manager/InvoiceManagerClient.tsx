@@ -182,33 +182,26 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
     return result;
   }, [invoices, tenants, selectedRoom, sortOrder, selectedYear, selectedMonth]);
   if (loading) {
-    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">กำลังโหลดข้อมูล...</div>;
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-800">กำลังโหลดข้อมูล...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-300 p-4 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900 p-6 rounded-2xl border border-slate-800 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">📋 จัดการบิล (Invoice Manager)</h1>
-            <p className="text-slate-400">
-              {canEdit ? 'ดูและแก้ไขข้อมูลบิลทั้งหมด' : 'ดูข้อมูลบิลทั้งหมด (สิทธิ์แก้ไขเฉพาะ Owner)'}
-            </p>
-          </div>
-          <Link href="/" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-700">
-            กลับหน้าหลัก
-          </Link>
-        </div>
+    <div className="w-full flex flex-col gap-6 text-slate-600">
+      <header className="mb-2">
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">📋 จัดการบิล (Invoice Manager)</h1>
+        <p className="text-slate-500 mt-2">
+          {canEdit ? 'ดูและแก้ไขข้อมูลบิลทั้งหมด' : 'ดูข้อมูลบิลทั้งหมด (สิทธิ์แก้ไขเฉพาะ Owner)'}
+        </p>
+      </header>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-200">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-400">เลือกห้อง:</label>
+            <label className="text-sm font-medium text-slate-500">เลือกห้อง:</label>
             <select 
               value={selectedRoom} 
               onChange={(e) => setSelectedRoom(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
             >
               <option value="ALL">ทั้งหมด (All Rooms)</option>
               {uniqueRooms.map(r => {
@@ -221,11 +214,11 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-400">ปี:</label>
+            <label className="text-sm font-medium text-slate-500">ปี:</label>
             <select 
               value={selectedYear} 
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y === 'ALL' ? 'ทั้งหมด' : y}</option>
@@ -234,11 +227,11 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-400">เดือน:</label>
+            <label className="text-sm font-medium text-slate-500">เดือน:</label>
             <select 
               value={selectedMonth} 
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
             >
               <option value="ALL">ทั้งหมด</option>
               {monthOptions.map(m => (
@@ -247,12 +240,12 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
             </select>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <label className="text-sm font-medium text-slate-400">เรียง:</label>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <label className="text-sm font-medium text-slate-500">เรียง:</label>
             <select 
               value={sortOrder} 
               onChange={(e) => setSortOrder(e.target.value as 'DESC' | 'ASC')}
-              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:border-indigo-500 outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
             >
               <option value="DESC">ล่าสุดไปเก่าสุด (Newest First)</option>
               <option value="ASC">เก่าสุดไปล่าสุด (Oldest First)</option>
@@ -261,30 +254,30 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
 
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/30 rounded-lg text-sm font-medium transition-all"
+            className="px-4 py-2 bg-emerald-600-white border border-emerald-500/30 rounded-lg text-sm font-medium transition-all"
           >
             📥 Export CSV
           </button>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl overflow-x-auto">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
-              <tr className="border-b border-slate-700 text-slate-400 text-sm">
-                <th className="py-3 px-4 font-medium">งวด</th>
-                <th className="py-3 px-4 font-medium">ห้อง</th>
-                <th className="py-3 px-4 font-medium text-right">ไฟ (ยูนิต)</th>
-                <th className="py-3 px-4 font-medium text-right">น้ำ (บาท)</th>
-                <th className="py-3 px-4 font-medium text-right text-indigo-300">ค่าห้อง</th>
-                <th className="py-3 px-4 font-medium text-right text-indigo-400">รวม(ห้อง+น้ำ+ไฟ)</th>
-                <th className="py-3 px-4 font-medium text-right">ยอดค้างยกมา</th>
-                <th className="py-3 px-4 font-medium text-right text-emerald-400">ยอดรวมสุทธิ</th>
-                <th className="py-3 px-4 font-medium text-right">ยอดที่จ่ายแล้ว</th>
-                <th className="py-3 px-4 font-medium text-center">สถานะ</th>
-                <th className="py-3 px-4 font-medium text-center">จัดการ</th>
+              <tr className="border-b border-slate-200 bg-white text-slate-500 text-sm divide-x divide-slate-200">
+                <th className="py-4 px-4 font-medium sticky left-0 z-20 bg-white">งวด</th>
+                <th className="py-4 px-4 font-medium sticky left-[4.5rem] z-20 bg-white">ห้อง</th>
+                <th className="py-4 px-4 font-medium text-right">ไฟ (ยูนิต)</th>
+                <th className="py-4 px-4 font-medium text-right">น้ำ (บาท)</th>
+                <th className="py-4 px-4 font-medium text-right text-indigo-600">ค่าห้อง</th>
+                <th className="py-4 px-4 font-medium text-right text-indigo-600">รวม(ห้อง+น้ำ+ไฟ)</th>
+                <th className="py-4 px-4 font-medium text-right">ยอดค้างยกมา</th>
+                <th className="py-4 px-4 font-medium text-right text-emerald-700">ยอดรวมสุทธิ</th>
+                <th className="py-4 px-4 font-medium text-right">ยอดที่จ่ายแล้ว</th>
+                <th className="py-4 px-4 font-medium text-center">สถานะ</th>
+                <th className="py-4 px-4 font-medium text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-200">
               {filteredAndSortedInvoices.map(inv => {
                 const room = rooms.find(r => r.roomId === inv.roomId);
                 const baseRent = room?.monthlyRent ?? 0;
@@ -305,50 +298,50 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
                 }
                 
                 if (displayStatus === 'PAID') {
-                  statusBadgeClasses = 'bg-emerald-900/30 text-emerald-400 border-emerald-800';
+                  statusBadgeClasses = 'bg-emerald-100 text-emerald-700 border-emerald-200';
                 } else if (displayStatus === 'CLEARED') {
-                  statusBadgeClasses = 'bg-slate-800 text-slate-400 border-slate-700';
+                  statusBadgeClasses = 'bg-slate-100 text-slate-600 border-slate-200';
                   displayStatus = 'ยกยอดไปแล้ว';
                 } else if (displayStatus === 'PARTIAL') {
-                  statusBadgeClasses = 'bg-amber-900/30 text-amber-400 border-amber-800';
+                  statusBadgeClasses = 'bg-amber-100 text-amber-700 border-amber-200';
                 } else {
-                  statusBadgeClasses = 'bg-rose-900/30 text-rose-400 border-rose-800';
+                  statusBadgeClasses = 'bg-rose-100 text-rose-700 border-rose-200';
                 }
                 
                 return (
-                <tr key={inv.invoiceId} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
-                  <td className="py-3 px-4 font-medium text-white">
+                <tr key={inv.invoiceId} className="group hover:bg-slate-50 hover:bg-slate-100 transition-colors divide-x divide-slate-200">
+                  <td className="py-4 px-4 font-medium text-slate-800 sticky left-0 z-10 bg-white group-hover:bg-slate-50 hover:bg-slate-100 transition-colors">
                     {inv.period}
-                    {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-900/40 text-amber-400 px-1.5 py-0.5 rounded border border-amber-700/50">ส่วนลดแรกเข้า</span>}
+                    {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">ส่วนลดแรกเข้า</span>}
                   </td>
-                  <td className="py-3 px-4">{room?.roomNumber || inv.roomId}</td>
+                  <td className="py-4 px-4 sticky left-[4.5rem] z-10 bg-white group-hover:bg-slate-50 hover:bg-slate-100 transition-colors">{room?.roomNumber || inv.roomId}</td>
                   <td className="py-3 px-4 text-right">{inv.currMeter - inv.prevMeter}</td>
                   <td className="py-3 px-4 text-right">{formatThB(inv.waterBill)}</td>
-                  <td className="py-3 px-4 text-right text-indigo-300">{formatThB(actualRent)}</td>
-                  <td className="py-3 px-4 text-right font-medium text-indigo-400">{formatThB(inv.totalAmount)}</td>
-                  <td className="py-3 px-4 text-right text-rose-400">{formatThB(inv.remainingArrears ?? 0)}</td>
-                  <td className="py-3 px-4 text-right font-bold text-emerald-400">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
+                  <td className="py-3 px-4 text-right text-indigo-600">{formatThB(actualRent)}</td>
+                  <td className="py-3 px-4 text-right font-medium text-indigo-600">{formatThB(inv.totalAmount)}</td>
+                  <td className="py-3 px-4 text-right text-rose-700">{formatThB(inv.remainingArrears ?? 0)}</td>
+                  <td className="py-3 px-4 text-right font-bold text-emerald-700">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
                   
                   {canEdit && editingId === inv.invoiceId ? (
                     <>
                       <td className="py-3 px-4">
-                        <input type="number" value={editForm.paidAmount} onChange={e => setEditForm({...editForm, paidAmount: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-white text-right" />
+                        <input type="number" value={editForm.paidAmount} onChange={e => setEditForm({...editForm, paidAmount: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded p-1 text-slate-800 text-right" />
                       </td>
                       <td className="py-3 px-4">
-                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-white">
+                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded p-1 text-slate-800">
                           <option value="UNPAID">UNPAID</option>
                           <option value="PARTIAL">PARTIAL</option>
                           <option value="PAID">PAID</option>
                         </select>
                       </td>
                       <td className="py-3 px-4 text-center space-x-2">
-                        <button onClick={handleSave} disabled={saving} className="text-emerald-400 hover:text-emerald-300">บันทึก</button>
-                        <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">ยกเลิก</button>
+                        <button onClick={handleSave} disabled={saving} className="text-emerald-700 hover:text-emerald-300">บันทึก</button>
+                        <button onClick={() => setEditingId(null)} className="text-slate-500 hover:text-slate-600">ยกเลิก</button>
                       </td>
                     </>
                   ) : (
                     <>
-                      <td className="py-3 px-4 text-right text-emerald-400">{formatThB(inv.paidAmount || 0)}</td>
+                      <td className="py-3 px-4 text-right text-emerald-700">{formatThB(inv.paidAmount || 0)}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`px-2 py-1 text-xs rounded-full border ${statusBadgeClasses}`} title={inv.status !== displayStatus ? `สถานะเดิม: ${inv.status}` : ''}>
                           {displayStatus}
@@ -356,7 +349,7 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
                       </td>
                       <td className="py-3 px-4 text-center">
                         {canEdit ? (
-                          <button onClick={() => handleEdit(inv)} className="text-indigo-400 hover:text-indigo-300 text-sm">
+                          <button onClick={() => handleEdit(inv)} className="text-indigo-600 hover:text-indigo-700 text-sm">
                             แก้ไข
                           </button>
                         ) : (
@@ -380,8 +373,6 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
             </tbody>
           </table>
         </div>
-
       </div>
-    </div>
   );
 }

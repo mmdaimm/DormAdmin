@@ -79,6 +79,30 @@ export async function setPrimaryTenant(roomId: string, tenantId: string | undefi
   await updateSheetValues(`${SHEET_ROOMS}!G${sheetRow}`, [[tenantId ?? '']]);
 }
 
+/**
+ * Updates the monthly rent and deposit amount for a specific room.
+ * Modifies columns C through F to ensure both values are updated.
+ */
+export async function updateRoomRentAndDeposit(roomId: string, monthlyRent: number, depositAmount: number): Promise<void> {
+  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:F`);
+  const rowIndex = rows.findIndex((r) => String(r[0] ?? '').trim() === roomId);
+  if (rowIndex === -1) {
+    throw new Error(`Room with roomId "${roomId}" not found.`);
+  }
+  const sheetRow = rowIndex + 2;
+  const row = rows[rowIndex];
+  
+  // Column C (rent), D (lineToken), E (creditBalance), F (depositAmount)
+  const updateValues = [[
+    monthlyRent,
+    row[3] ?? '',
+    row[4] ?? 0,
+    depositAmount
+  ]];
+  
+  await updateSheetValues(`${SHEET_ROOMS}!C${sheetRow}:F${sheetRow}`, updateValues);
+}
+
 // ─── Invoices ─────────────────────────────────────────────────────────────────
 
 function rowToInvoice(row: unknown[]): Invoice {

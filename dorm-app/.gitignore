@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Mock Data
 /data/
+
+# Temporary Scripts
+test-services.ts
+test.mjs
+update-mock.js

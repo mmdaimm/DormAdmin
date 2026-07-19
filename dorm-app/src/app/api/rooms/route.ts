@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { getRooms, getAllInvoices } from '@/services/sheetService';
+import { NextRequest, NextResponse } from 'next/server';
+import { getRooms, getAllInvoices, updateRoomRentAndDeposit, logAuditAction } from '@/services/sheetService';
+import { decrypt } from '@/lib/auth';
 
 /**
  * GET /api/rooms
@@ -56,5 +57,35 @@ export async function GET(): Promise<NextResponse> {
       { success: false, error: 'Failed to fetch rooms.' },
       { status: 502 }
     );
+  }
+}
+
+export async function PUT(request: NextRequest): Promise<NextResponse> {
+  try {
+    const token = request.cookies.get('auth_token')?.value;
+    const session = await decrypt(token);
+    
+    if (!session || (session.role !== 'admin' && session.role !== 'owner')) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { roomId, monthlyRent, depositAmount } = body;
+
+    if (!roomId || typeof monthlyRent !== 'number' || typeof depositAmount !== 'number') {
+      return NextResponse.json({ success: false, error: 'Invalid parameters' }, { status: 400 });
+    }
+
+    if (monthlyRent < 0 || depositAmount < 0) {
+      return NextResponse.json({ success: false, error: 'Amounts cannot be negative' }, { status: 400 });
+    }
+
+    await updateRoomRentAndDeposit(roomId, monthlyRent, depositAmount);
+    await logAuditAction('UPDATE_ROOM', `Updated room ${roomId}: rent=${monthlyRent}, deposit=${depositAmount}`, session.username);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[PUT /api/rooms]', error);
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Internal error' }, { status: 500 });
   }
 }

@@ -12,9 +12,9 @@ const thb = (n: number) =>
 
 function SkeletonCard() {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 animate-pulse">
-      <div className="h-3 w-24 bg-slate-800 rounded mb-3" />
-      <div className="h-7 w-32 bg-slate-800 rounded" />
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse shadow-sm">
+      <div className="h-3 w-24 bg-slate-200 rounded mb-3" />
+      <div className="h-7 w-32 bg-slate-200 rounded" />
     </div>
   );
 }
@@ -61,9 +61,9 @@ export default function DashboardKPI() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="bg-slate-900 border border-emerald-900/50 rounded-2xl p-5">
-        <h3 className="text-slate-400 text-xs uppercase tracking-wider mb-2">อัตราการเข้าพัก</h3>
-        <p className="text-2xl font-bold text-emerald-400">
+      <div className="bg-white border border-emerald-200 shadow-sm rounded-2xl p-5">
+        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-2">อัตราการเข้าพัก</h3>
+        <p className="text-2xl font-bold text-emerald-700">
           {(occupancy.occupancyRate * 100).toFixed(0)}%
         </p>
         <p className="text-xs text-slate-500 mt-1">
@@ -71,16 +71,16 @@ export default function DashboardKPI() {
         </p>
       </div>
 
-      <div className="bg-slate-900 border border-indigo-900/50 rounded-2xl p-5">
-        <h3 className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+      <div className="bg-white border border-indigo-200 shadow-sm rounded-2xl p-5">
+        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-2">
           รายได้เดือนนี้ (ตามงวดบิล)
         </h3>
-        <p className="text-2xl font-bold text-indigo-400">฿{thb(latestIncome)}</p>
+        <p className="text-2xl font-bold text-indigo-600">฿{thb(latestIncome)}</p>
         <p className="text-xs text-slate-500 mt-1">Accrual Basis — ไม่ใช่กระแสเงินสด</p>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:col-span-2 lg:col-span-2">
-        <h3 className="text-slate-400 text-xs uppercase tracking-wider mb-3">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 sm:col-span-2 lg:col-span-2">
+        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-3">
           แนวโน้มรายได้ 3 เดือนล่าสุด (ตามงวดบิล)
         </h3>
         <div className="flex items-end gap-3 h-16">
@@ -89,7 +89,7 @@ export default function DashboardKPI() {
             const heightPct = (point.income / max) * 100;
             return (
               <div key={point.period} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-slate-800 rounded-t relative" style={{ height: '48px' }}>
+                <div className="w-full bg-slate-100 border border-slate-200 rounded-t relative" style={{ height: '48px' }}>
                   <div
                     className="absolute bottom-0 left-0 right-0 bg-indigo-500 rounded-t"
                     style={{ height: `${heightPct}%` }}
