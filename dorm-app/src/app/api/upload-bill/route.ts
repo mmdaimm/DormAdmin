@@ -31,7 +31,13 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `invoice-${roomNumber}-${Date.now()}.pdf`;
+    
+    // Format: RoomNumber + MM + DD + YYYY (e.g. 10207172026.pdf)
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const fileName = `${roomNumber}${mm}${dd}${yyyy}.pdf`;
 
     const s3Client = new S3Client({
       region: 'auto',

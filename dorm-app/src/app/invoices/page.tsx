@@ -210,9 +210,15 @@ export default function InvoicesPage() {
         <SlipPdf invoice={computedInvoice} roomNumber={selectedRoom.roomNumber} type="INVOICE" electricRate={rates.electricRate} />
       ).toBlob();
 
-      // Step C: upload the PDF to get a real URL.
+      // Format: RoomNumber + MM + DD + YYYY (e.g. 10207172026.pdf)
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const fileName = `${selectedRoom.roomNumber}${mm}${dd}${yyyy}.pdf`;
+
       const formData = new FormData();
-      formData.append('pdf', blob, `invoice-${selectedRoom.roomNumber}-${Date.now()}.pdf`);
+      formData.append('pdf', blob, fileName);
       formData.append('roomNumber', selectedRoom.roomNumber);
 
       const uploadRes = await fetch('/api/upload-bill', {

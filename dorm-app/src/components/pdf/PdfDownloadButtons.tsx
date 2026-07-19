@@ -38,6 +38,15 @@ export default function PdfDownloadButtons({
 
   const typedInvoice = invoice as Invoice;
 
+  // Format: RoomNumber + MM + DD + YYYY (e.g. 10207172026)
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const dateStr = `${mm}${dd}${yyyy}`;
+  const invFileName = `${roomNumber}${dateStr}.pdf`;
+  const receiptFileName = `Receipt-${roomNumber}${dateStr}.pdf`;
+
   return (
     <div className="flex flex-col gap-3">
       {/* ── Invoice PDF ── */}
@@ -51,7 +60,7 @@ export default function PdfDownloadButtons({
               electricRate={electricRate}
             />
           }
-          fileName={`Invoice-${typedInvoice.invoiceId}.pdf`}
+          fileName={invFileName}
           className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40"
         >
           {({ loading }) =>
@@ -88,7 +97,7 @@ export default function PdfDownloadButtons({
               electricRate={electricRate}
             />
           }
-          fileName={`Receipt-${typedInvoice.invoiceId}.pdf`}
+          fileName={receiptFileName}
           className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-900/40"
         >
           {({ loading }) =>
