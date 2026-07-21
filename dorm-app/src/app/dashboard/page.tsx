@@ -38,9 +38,9 @@ const STATUS_LABEL: Record<Invoice['status'], string> = {
 }
 
 const STATUS_STYLE: Record<Invoice['status'], string> = {
-  PAID: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-  UNPAID: 'bg-red-500/15 text-red-400 border border-red-500/30',
-  PARTIAL: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+  PAID: 'bg-green-500 text-black border-2 border-green-600 shadow-[2px_2px_0_0_#15803d]',
+  UNPAID: 'bg-[#f33022] text-white border-2 border-[#b91c1c] shadow-[2px_2px_0_0_#7f1d1d]',
+  PARTIAL: 'bg-[#f7a501] text-black border-2 border-[#b77a00] shadow-[2px_2px_0_0_#78350f]',
 };
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ interface KpiCardProps {
 
 function KpiCard({ emoji, label, value, sub, accent }: KpiCardProps) {
   return (
-    <div className={`bg-slate-900 border rounded-2xl p-5 flex flex-col gap-3 ${accent}`}>
+    <div className={`bg-slate-900 border-2 rounded-xl p-5 flex flex-col gap-3 shadow-[4px_4px_0_0_rgba(30,41,59,0.5)] ${accent}`}>
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">{label}</span>
         <span className="text-2xl">{emoji}</span>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="bg-slate-900 border-2 border-slate-700 rounded-xl p-6 w-full max-w-md shadow-[8px_8px_0_0_rgba(15,23,42,1)]">
           <h3 className="text-xl font-bold text-white mb-4">รับชำระเงิน</h3>
           <p className="text-slate-300 text-sm mb-4">
             ห้อง {selectedInvoice.roomNumber} ({selectedInvoice.tenantName})<br />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
           
           <div className="mb-4">
             <label className="block text-sm font-medium text-slate-400 mb-1">ยอดรวมสุทธิ</label>
-            <div className="text-2xl font-bold text-indigo-400">฿ {thb(grandTotal)}</div>
+            <div className="text-2xl font-bold text-emerald-600">฿ {thb(grandTotal)}</div>
           </div>
           
           <div className="mb-6">
@@ -193,7 +193,7 @@ export default function DashboardPage() {
               type="number"
               value={amountPaidStr}
               onChange={(e) => setAmountPaidStr(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
             />
             {isOverpaid && (
               <p className="mt-2 text-sm text-emerald-400 font-medium">
@@ -217,7 +217,7 @@ export default function DashboardPage() {
             <button
               onClick={handleConfirm}
               disabled={isInvalid}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold transition-colors"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:border-slate-700 disabled:text-slate-500 disabled:shadow-none text-white font-bold border-2 border-blue-500 shadow-[4px_4px_0_0_#1d4aff] transition-colors"
             >
               ยืนยันการชำระเงิน
             </button>
@@ -231,10 +231,10 @@ export default function DashboardPage() {
     if (!successInvoice) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/40">
-              <span className="text-2xl">✅</span>
+        <div className="bg-slate-900 border-2 border-emerald-500/60 rounded-xl p-8 w-full max-w-md shadow-[8px_8px_0_0_rgba(16,185,129,0.2)] text-center">
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center border-4 border-green-600 shadow-[4px_4px_0_0_#15803d]">
+              <span className="text-3xl text-black">✓</span>
             </div>
           </div>
           <h3 className="text-xl font-bold text-white mb-2">บันทึกการรับชำระเงินสำเร็จ</h3>
@@ -271,7 +271,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-400 text-sm">กำลังโหลดข้อมูล Dashboard…</p>
         </div>
       </div>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           <p className="text-red-300 text-sm mb-6">{dataError}</p>
           <button
             onClick={load}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors mb-3"
+            className="w-full py-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:bg-slate-800 text-white font-bold text-sm transition-colors mb-3 shadow-[4px_4px_0_0_rgba(15,23,42,1)]"
           >
             ลองใหม่อีกครั้ง
           </button>
@@ -350,27 +350,27 @@ export default function DashboardPage() {
               label="ห้องที่มีผู้เช่า"
               value={kpi.occupiedRooms}
               sub={`ว่าง ${kpi.totalRooms - kpi.occupiedRooms} ห้อง`}
-              accent="border-emerald-700/40"
+              accent="border-emerald-600"
             />
             <KpiCard
               emoji="⚠️"
               label="ยังไม่ชำระ"
               value={kpi.unpaidCount}
               sub="ใบแจ้งหนี้ที่ค้างอยู่"
-              accent="border-red-700/40"
+              accent="border-red-600"
             />
             <KpiCard
               emoji="💰"
               label="ยอดค้างชำระรวม"
               value={`฿ ${thb(kpi.totalOutstanding)}`}
               sub="ผลรวมทุกใบที่ยังไม่ชำระ"
-              accent="border-amber-700/40"
+              accent="border-amber-500"
             />
           </div>
         )}
 
         {/* ── Payment History Table ── */}
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-slate-900 border-2 border-slate-800 rounded-xl shadow-[4px_4px_0_0_rgba(30,41,59,0.5)] overflow-hidden">
           {/* Table header */}
           <div className="px-6 py-4 border-b border-slate-700 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
             <h2 className="text-base font-semibold text-white">ประวัติใบแจ้งหนี้</h2>
@@ -381,10 +381,10 @@ export default function DashboardPage() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
                     filter === f
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#f7a501] text-black border-2 border-[#b77a00] shadow-[2px_2px_0_0_#78350f]'
+                      : 'text-slate-400 hover:text-white border-2 border-transparent'
                   }`}
                 >
                   {f === 'ALL' ? 'ทั้งหมด' :
@@ -435,7 +435,7 @@ export default function DashboardPage() {
                           {inv.period}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <div className="font-semibold text-indigo-300 tabular-nums">
+                          <div className="font-semibold text-emerald-600 tabular-nums">
                             ฿ {thb(immutableGrandTotal)}
                           </div>
                           {inv.status === 'PAID' && (
@@ -465,8 +465,9 @@ export default function DashboardPage() {
                               onClick={() => openPaymentModal(inv)}
                               disabled={isPaying}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                                         bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700
-                                         disabled:text-slate-500 text-white font-semibold text-xs
+                                         bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:border-slate-700
+                                         disabled:text-slate-500 text-white font-bold text-xs disabled:shadow-none
+                                         border-2 border-blue-500 shadow-[4px_4px_0_0_#1d4aff]
                                          transition-all duration-200 disabled:cursor-not-allowed"
                             >
                               {isPaying ? (

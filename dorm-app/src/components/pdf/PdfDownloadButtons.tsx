@@ -61,7 +61,7 @@ export default function PdfDownloadButtons({
             />
           }
           fileName={invFileName}
-          className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40"
+          className="flex items-center justify-center gap-2 w-full py-3 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-900/40"
         >
           {({ loading }) =>
             loading ? (

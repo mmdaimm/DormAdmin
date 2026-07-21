@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTenants, getRooms, saveTenant } from '@/services/sheetService';
+import { getTenants, saveTenant } from '@/services/tenantService';
+import { getRooms } from '@/services/sheetService';
+import { apiSuccess, apiError } from '@/lib/apiResponse';
 import type { Tenant } from '@/types';
 
 // ─── POST body shape ──────────────────────────────────────────────────────────
@@ -11,19 +13,14 @@ interface CreateTenantBody {
   room_id: string;
   entryDate: string;
   status?: 'ACTIVE' | 'INACTIVE';
-  /** If present, this update is for an EXISTING tenant (reuse this ID).
-   *  If absent, this creates a NEW tenant (generate a fresh ID). */
   tenantId?: string;
-  /** Optional. Free-text — no format validation, same as elsewhere in the system. */
   lineUserId?: string;
 }
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 
-/** Phone must be exactly 10 Thai digits (0-9, no spaces/dashes). */
 const PHONE_RE = /^\d{10}$/;
 
-/** entryDate must be YYYY-MM-DD and parse to a valid calendar date. */
 function isValidDate(dateStr: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   const d = new Date(dateStr);
@@ -32,51 +29,28 @@ function isValidDate(dateStr: string): boolean {
 
 // ─── GET /api/tenants ─────────────────────────────────────────────────────────
 
-/**
- * Returns the full list of tenant records from the Tenants sheet.
- */
 export async function GET(): Promise<NextResponse> {
   try {
     const tenants = await getTenants();
-    return NextResponse.json({ success: true, tenants });
+    return apiSuccess({ tenants });
   } catch (error) {
     console.error('[GET /api/tenants]', error);
-    return NextResponse.json(
-      { success: false, error: 'ไม่สามารถโหลดข้อมูลผู้เช่าได้' },
-      { status: 502 }
-    );
+    return apiError('ไม่สามารถโหลดข้อมูลผู้เช่าได้', 502);
   }
 }
 
 // ─── POST /api/tenants ────────────────────────────────────────────────────────
 
-/**
- * Creates a new tenant record in the Tenants sheet.
- *
- * Strict server-side validation (mirrors client-side to prevent bad saves):
- *   • firstname, lastname  — required, non-empty
- *   • phone                — exactly 10 digits
- *   • entryDate            — valid YYYY-MM-DD
- *   • room_id              — must exist in the Rooms sheet
- *
- * The tenantId is generated server-side as `T-{timestamp}` to avoid
- * collisions without requiring a sequence lock on the sheet.
- */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // 1. Parse body ─────────────────────────────────────────────────────────────
   let body: CreateTenantBody;
   try {
     body = (await request.json()) as CreateTenantBody;
   } catch {
-    return NextResponse.json(
-      { success: false, error: 'ข้อมูล JSON ไม่ถูกต้อง' },
-      { status: 400 }
-    );
+    return apiError('ข้อมูล JSON ไม่ถูกต้อง', 400);
   }
 
   const { firstname, lastname, phone, room_id, entryDate, status = 'ACTIVE', tenantId, lineUserId } = body;
 
-  // 2. Validate required string fields ────────────────────────────────────────
   const fieldErrors: Record<string, string> = {};
 
   if (!firstname?.trim()) {
@@ -96,51 +70,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (Object.keys(fieldErrors).length > 0) {
-    return NextResponse.json(
-      { success: false, error: 'ข้อมูลไม่ถูกต้อง', fieldErrors },
-      { status: 400 }
-    );
+    return apiError('ข้อมูลไม่ถูกต้อง', 400, fieldErrors);
   }
 
-  // 3. Verify room_id exists in the Rooms sheet ───────────────────────────────
   let rooms: Awaited<ReturnType<typeof getRooms>>;
   try {
     rooms = await getRooms();
   } catch (error) {
     console.error('[POST /api/tenants] Failed to fetch rooms:', error);
-    return NextResponse.json(
-      { success: false, error: 'ไม่สามารถตรวจสอบข้อมูลห้องได้' },
-      { status: 502 }
-    );
+    return apiError('ไม่สามารถตรวจสอบข้อมูลห้องได้', 502);
   }
 
   const roomExists = rooms.some((r) => r.roomId === room_id.trim());
   if (!roomExists) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `ไม่พบห้อง "${room_id}" ในระบบ`,
-        fieldErrors: { room_id: `ไม่พบห้อง "${room_id}" ในระบบ` },
-      },
-      { status: 400 }
-    );
+    return apiError(`ไม่พบห้อง "${room_id}" ในระบบ`, 400, { room_id: `ไม่พบห้อง "${room_id}" ในระบบ` });
   }
 
-  // 4. Build and persist the tenant record ────────────────────────────────────
-  // Reuse the caller-supplied tenantId when editing an existing tenant, so
-  // getLatestStateByTenantId() in tenantUtils.ts can correctly identify this
-  // as an update to the same person rather than a new co-tenant.
   const tenant: Tenant = {
-    tenantId:  tenantId?.trim() || `T-${Date.now()}`,
+    tenantId: tenantId?.trim() || `T-${Date.now()}`,
     firstname: firstname.trim(),
-    lastname:  lastname.trim(),
-    phone:     phone.trim(),
-    room_id:   room_id.trim(),
+    lastname: lastname.trim(),
+    phone: phone.trim(),
+    room_id: room_id.trim(),
     entryDate: entryDate.trim(),
     status,
-    // Empty string → undefined, consistent with how rowToTenant() treats a
-    // blank Column H cell elsewhere in the system (never persist "" as a
-    // meaningful value for this field).
     lineUserId: lineUserId?.trim() || undefined,
   };
 
@@ -148,15 +101,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await saveTenant(tenant);
   } catch (error) {
     console.error('[POST /api/tenants] Failed to save tenant:', error);
-    return NextResponse.json(
-      { success: false, error: 'ไม่สามารถบันทึกข้อมูลผู้เช่าได้' },
-      { status: 502 }
-    );
+    return apiError('ไม่สามารถบันทึกข้อมูลผู้เช่าได้', 502);
   }
 
-  // 5. Return the created record ───────────────────────────────────────────────
-  return NextResponse.json(
-    { success: true, message: 'บันทึกข้อมูลผู้เช่าเรียบร้อยแล้ว', tenant },
-    { status: 201 }
+  return apiSuccess(
+    { message: 'บันทึกข้อมูลผู้เช่าเรียบร้อยแล้ว', tenant },
+    201
   );
 }

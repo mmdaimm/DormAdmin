@@ -1,0 +1,17 @@
+# Root gitignore for DormAdmin project
+
+# Temporary Archives & Binary Skill Packages
+*.zip
+*.skill
+*.log
+*.tmp
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local data & environment
+/data/
+.env*.local

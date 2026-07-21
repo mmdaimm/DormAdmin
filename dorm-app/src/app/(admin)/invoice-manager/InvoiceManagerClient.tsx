@@ -182,26 +182,26 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
     return result;
   }, [invoices, tenants, selectedRoom, sortOrder, selectedYear, selectedMonth]);
   if (loading) {
-    return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-800">กำลังโหลดข้อมูล...</div>;
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">กำลังโหลดข้อมูล...</div>;
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 text-slate-600">
+    <div className="w-full flex flex-col gap-6 text-slate-300">
       <header className="mb-2">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">📋 จัดการบิล (Invoice Manager)</h1>
-        <p className="text-slate-500 mt-2">
+        <h1 className="text-3xl font-bold text-white tracking-tight">📋 จัดการบิล (Invoice Manager)</h1>
+        <p className="text-slate-400 mt-2">
           {canEdit ? 'ดูและแก้ไขข้อมูลบิลทั้งหมด' : 'ดูข้อมูลบิลทั้งหมด (สิทธิ์แก้ไขเฉพาะ Owner)'}
         </p>
       </header>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-200">
+        <div className="flex flex-col sm:flex-row gap-4 bg-slate-900 p-4 rounded-xl border-2 border-slate-800 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-500">เลือกห้อง:</label>
+            <label className="text-sm font-medium text-slate-400">เลือกห้อง:</label>
             <select 
               value={selectedRoom} 
               onChange={(e) => setSelectedRoom(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-emerald-500 outline-none"
             >
               <option value="ALL">ทั้งหมด (All Rooms)</option>
               {uniqueRooms.map(r => {
@@ -214,11 +214,11 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-500">ปี:</label>
+            <label className="text-sm font-medium text-slate-400">ปี:</label>
             <select 
               value={selectedYear} 
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-emerald-500 outline-none"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y === 'ALL' ? 'ทั้งหมด' : y}</option>
@@ -227,11 +227,11 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-500">เดือน:</label>
+            <label className="text-sm font-medium text-slate-400">เดือน:</label>
             <select 
               value={selectedMonth} 
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-emerald-500 outline-none"
             >
               <option value="ALL">ทั้งหมด</option>
               {monthOptions.map(m => (
@@ -241,43 +241,42 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
           </div>
 
           <div className="flex items-center gap-2 sm:ml-auto">
-            <label className="text-sm font-medium text-slate-500">เรียง:</label>
+            <label className="text-sm font-medium text-slate-400">เรียง:</label>
             <select 
               value={sortOrder} 
               onChange={(e) => setSortOrder(e.target.value as 'DESC' | 'ASC')}
-              className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:border-indigo-500 outline-none"
+              className="bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-emerald-500 outline-none"
             >
               <option value="DESC">ล่าสุดไปเก่าสุด (Newest First)</option>
               <option value="ASC">เก่าสุดไปล่าสุด (Oldest First)</option>
             </select>
           </div>
 
-          <button
-            onClick={handleExportCSV}
-            className="px-4 py-2 bg-emerald-600-white border border-emerald-500/30 rounded-lg text-sm font-medium transition-all"
+          <button onClick={handleExportCSV} disabled={invoices.length === 0}
+            className="px-4 py-2 bg-[#1d1f27] hover:bg-slate-800 text-white border-2 border-slate-600 rounded-lg text-sm font-bold transition-all shadow-[4px_4px_0_0_#f7a501] disabled:opacity-50 disabled:shadow-none font-mono"
           >
             📥 Export CSV
           </button>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+        <div className="bg-slate-900 border-2 border-slate-800 rounded-2xl overflow-x-auto shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
-              <tr className="border-b border-slate-200 bg-white text-slate-500 text-sm divide-x divide-slate-200">
-                <th className="py-4 px-4 font-medium sticky left-0 z-20 bg-white">งวด</th>
-                <th className="py-4 px-4 font-medium sticky left-[4.5rem] z-20 bg-white">ห้อง</th>
+              <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 text-sm divide-x divide-slate-800">
+                <th className="py-4 px-4 font-medium sticky left-0 z-20 bg-slate-950">งวด</th>
+                <th className="py-4 px-4 font-medium sticky left-[4.5rem] z-20 bg-slate-950">ห้อง</th>
                 <th className="py-4 px-4 font-medium text-right">ไฟ (ยูนิต)</th>
                 <th className="py-4 px-4 font-medium text-right">น้ำ (บาท)</th>
-                <th className="py-4 px-4 font-medium text-right text-indigo-600">ค่าห้อง</th>
-                <th className="py-4 px-4 font-medium text-right text-indigo-600">รวม(ห้อง+น้ำ+ไฟ)</th>
+                <th className="py-4 px-4 font-medium text-right text-emerald-400">ค่าห้อง</th>
+                <th className="py-4 px-4 font-medium text-right text-emerald-400">รวม(ห้อง+น้ำ+ไฟ)</th>
                 <th className="py-4 px-4 font-medium text-right">ยอดค้างยกมา</th>
-                <th className="py-4 px-4 font-medium text-right text-emerald-700">ยอดรวมสุทธิ</th>
+                <th className="py-4 px-4 font-medium text-right text-emerald-500">ยอดรวมสุทธิ</th>
                 <th className="py-4 px-4 font-medium text-right">ยอดที่จ่ายแล้ว</th>
                 <th className="py-4 px-4 font-medium text-center">สถานะ</th>
                 <th className="py-4 px-4 font-medium text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-800">
               {filteredAndSortedInvoices.map(inv => {
                 const room = rooms.find(r => r.roomId === inv.roomId);
                 const baseRent = room?.monthlyRent ?? 0;
@@ -298,50 +297,50 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
                 }
                 
                 if (displayStatus === 'PAID') {
-                  statusBadgeClasses = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                  statusBadgeClasses = 'bg-green-500 text-black border-2 border-green-600 shadow-[2px_2px_0_0_#15803d] font-bold';
                 } else if (displayStatus === 'CLEARED') {
-                  statusBadgeClasses = 'bg-slate-100 text-slate-600 border-slate-200';
+                  statusBadgeClasses = 'bg-slate-800 text-white border-2 border-slate-700 font-bold';
                   displayStatus = 'ยกยอดไปแล้ว';
-                } else if (displayStatus === 'PARTIAL') {
-                  statusBadgeClasses = 'bg-amber-100 text-amber-700 border-amber-200';
+                } else if (displayStatus === 'PARTIAL' || (inv.status === 'UNPAID' && inv.paidAmount > 0)) {
+                  statusBadgeClasses = 'bg-[#f7a501] text-black border-2 border-[#b77a00] shadow-[2px_2px_0_0_#78350f] font-bold';
                 } else {
-                  statusBadgeClasses = 'bg-rose-100 text-rose-700 border-rose-200';
+                  statusBadgeClasses = 'bg-[#f33022] text-white border-2 border-[#b91c1c] shadow-[2px_2px_0_0_#7f1d1d] font-bold';
                 }
                 
                 return (
-                <tr key={inv.invoiceId} className="group hover:bg-slate-50 hover:bg-slate-100 transition-colors divide-x divide-slate-200">
-                  <td className="py-4 px-4 font-medium text-slate-800 sticky left-0 z-10 bg-white group-hover:bg-slate-50 hover:bg-slate-100 transition-colors">
+                <tr key={inv.invoiceId} className="group hover:bg-slate-800 transition-colors divide-x divide-slate-800">
+                  <td className="py-4 px-4 font-medium text-white sticky left-0 z-10 bg-slate-900 group-hover:bg-slate-800 transition-colors">
                     {inv.period}
-                    {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">ส่วนลดแรกเข้า</span>}
+                    {inv.proratedAmount > 0 && <span className="ml-2 text-[10px] bg-amber-950 text-amber-400 px-1.5 py-0.5 rounded border border-amber-800">ส่วนลดแรกเข้า</span>}
                   </td>
-                  <td className="py-4 px-4 sticky left-[4.5rem] z-10 bg-white group-hover:bg-slate-50 hover:bg-slate-100 transition-colors">{room?.roomNumber || inv.roomId}</td>
+                  <td className="py-4 px-4 sticky left-[4.5rem] z-10 bg-slate-900 group-hover:bg-slate-800 transition-colors">{room?.roomNumber || inv.roomId}</td>
                   <td className="py-3 px-4 text-right">{inv.currMeter - inv.prevMeter}</td>
                   <td className="py-3 px-4 text-right">{formatThB(inv.waterBill)}</td>
-                  <td className="py-3 px-4 text-right text-indigo-600">{formatThB(actualRent)}</td>
-                  <td className="py-3 px-4 text-right font-medium text-indigo-600">{formatThB(inv.totalAmount)}</td>
-                  <td className="py-3 px-4 text-right text-rose-700">{formatThB(inv.remainingArrears ?? 0)}</td>
-                  <td className="py-3 px-4 text-right font-bold text-emerald-700">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
+                  <td className="py-3 px-4 text-right text-emerald-400">{formatThB(actualRent)}</td>
+                  <td className="py-3 px-4 text-right font-medium text-emerald-400">{formatThB(inv.totalAmount)}</td>
+                  <td className="py-3 px-4 text-right text-rose-400">{formatThB(inv.remainingArrears ?? 0)}</td>
+                  <td className="py-3 px-4 text-right font-bold text-emerald-500">{formatThB(inv.totalAmount + (inv.remainingArrears ?? 0) - (inv.creditApplied ?? 0))}</td>
                   
                   {canEdit && editingId === inv.invoiceId ? (
                     <>
                       <td className="py-3 px-4">
-                        <input type="number" value={editForm.paidAmount} onChange={e => setEditForm({...editForm, paidAmount: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded p-1 text-slate-800 text-right" />
+                        <input type="number" value={editForm.paidAmount} onChange={e => setEditForm({...editForm, paidAmount: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200 text-right focus:border-emerald-500 outline-none" />
                       </td>
                       <td className="py-3 px-4">
-                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded p-1 text-slate-800">
+                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-1 text-slate-200 focus:border-emerald-500 outline-none">
                           <option value="UNPAID">UNPAID</option>
                           <option value="PARTIAL">PARTIAL</option>
                           <option value="PAID">PAID</option>
                         </select>
                       </td>
                       <td className="py-3 px-4 text-center space-x-2">
-                        <button onClick={handleSave} disabled={saving} className="text-emerald-700 hover:text-emerald-300">บันทึก</button>
-                        <button onClick={() => setEditingId(null)} className="text-slate-500 hover:text-slate-600">ยกเลิก</button>
+                        <button onClick={handleSave} disabled={saving} className="text-emerald-400 hover:text-emerald-300">บันทึก</button>
+                        <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">ยกเลิก</button>
                       </td>
                     </>
                   ) : (
                     <>
-                      <td className="py-3 px-4 text-right text-emerald-700">{formatThB(inv.paidAmount || 0)}</td>
+                      <td className="py-3 px-4 text-right text-emerald-400">{formatThB(inv.paidAmount || 0)}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`px-2 py-1 text-xs rounded-full border ${statusBadgeClasses}`} title={inv.status !== displayStatus ? `สถานะเดิม: ${inv.status}` : ''}>
                           {displayStatus}
@@ -349,11 +348,11 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
                       </td>
                       <td className="py-3 px-4 text-center">
                         {canEdit ? (
-                          <button onClick={() => handleEdit(inv)} className="text-indigo-600 hover:text-indigo-700 text-sm">
+                          <button onClick={() => handleEdit(inv)} className="text-emerald-400 hover:text-emerald-300 text-sm font-medium">
                             แก้ไข
                           </button>
                         ) : (
-                          <span className="text-slate-600 text-xs" title="เฉพาะ Owner เท่านั้นที่แก้ไขบิลได้">
+                          <span className="text-slate-500 text-xs" title="เฉพาะ Owner เท่านั้นที่แก้ไขบิลได้">
                             🔒 ดูอย่างเดียว
                           </span>
                         )}

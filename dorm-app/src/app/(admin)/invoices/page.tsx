@@ -277,10 +277,10 @@ export default function InvoicesPage() {
   // ─── Render: loading ─────────────────────────────────────────────────────────
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">กำลังโหลดข้อมูลห้องพัก…</p>
+          <div className="w-12 h-12 border-4 border-slate-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-400 text-sm">กำลังโหลดข้อมูลห้องพัก…</p>
         </div>
       </div>
     );
@@ -289,8 +289,8 @@ export default function InvoicesPage() {
   // ─── Render: data error ───────────────────────────────────────────────────────
   if (dataError) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-red-950/60 border border-red-700 rounded-2xl p-8 max-w-md text-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <div className="bg-slate-900 border border-red-800/60 rounded-2xl p-8 max-w-md text-center shadow-[4px_4px_0_0_rgba(30,41,59,0.5)]">
           <p className="text-red-400 text-lg font-semibold mb-2">⚠️ ไม่สามารถโหลดข้อมูลได้</p>
           <p className="text-red-300 text-sm">{dataError}</p>
         </div>
@@ -301,35 +301,33 @@ export default function InvoicesPage() {
   // ─── Render: success — show download buttons ──────────────────────────────────
   if (result) {
     return (
-      <div className="w-full flex items-center justify-center p-6 text-slate-600">
+      <div className="w-full flex items-center justify-center p-6 text-slate-300">
         <div className="w-full max-w-lg">
           {/* Success card */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl">
+          <div className="bg-slate-900 border-2 border-slate-800 rounded-3xl p-8 shadow-[8px_8px_0_0_rgba(15,23,42,1)]">
             {/* Icon */}
             <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/40">
-                <svg className="w-10 h-10 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center border-4 border-green-600 shadow-[4px_4px_0_0_#15803d]">
+                <span className="text-4xl text-black">✓</span>
               </div>
             </div>
 
-            <h2 className="text-2xl font-bold text-slate-800 text-center mb-1">
+            <h2 className="text-2xl font-bold text-white text-center mb-1">
               บันทึกสำเร็จแล้ว!
             </h2>
-            <p className="text-slate-500 text-center text-sm mb-6">
+            <p className="text-slate-400 text-center text-sm mb-6">
               ห้อง {result.roomNumber} • ประจำเดือน {result.invoice.period}
             </p>
 
             {/* Summary mini-table */}
-            <div className="bg-white shadow-sm border border-slate-200 rounded-xl p-4 mb-6 space-y-2 text-sm">
-              <div className="flex justify-between text-slate-500">
+            <div className="bg-slate-950 shadow-sm border border-slate-700 rounded-xl p-4 mb-6 space-y-2 text-sm">
+              <div className="flex justify-between text-slate-400">
                 <span>เลขที่ใบแจ้งหนี้</span>
-                <span className="text-slate-800 font-mono text-xs">{result.invoice.invoiceId}</span>
+                <span className="text-slate-200 font-mono text-xs">{result.invoice.invoiceId}</span>
               </div>
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-slate-400">
                 <span>ยอดรวมทั้งสิ้น</span>
-                <span className="text-indigo-300 font-bold text-base">฿ {thb(result.invoice.totalAmount)}</span>
+                <span className="text-emerald-400 font-bold text-base">฿ {thb(result.invoice.totalAmount)}</span>
               </div>
               {result.invoice.arrears > 0 && (
                 <div className="flex justify-between text-red-400">
@@ -392,7 +390,7 @@ export default function InvoicesPage() {
                 setIsSending(false);
                 setIsSent(false);
               }}
-              className="text-slate-500 hover:text-slate-600 text-sm py-2 mt-4 block w-full text-center transition-colors"
+              className="text-slate-400 hover:text-slate-300 text-sm py-2 mt-4 block w-full text-center transition-colors"
             >
               ← ออกบิลห้องถัดไป
             </button>
@@ -404,18 +402,18 @@ export default function InvoicesPage() {
 
   // ─── Render: main form ────────────────────────────────────────────────────────
   return (
-    <div className="w-full flex flex-col gap-6 text-slate-600">
+    <div className="w-full flex flex-col gap-6 text-slate-300">
       <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8">
 
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-3xl font-bold text-white tracking-tight">
             ออกใบแจ้งหนี้
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            อัตราค่าไฟ: <span className="text-indigo-400 font-semibold">{rates.electricRate} ฿/หน่วย</span>
+          <p className="text-slate-400 mt-1 text-sm">
+            อัตราค่าไฟ: <span className="text-emerald-400 font-semibold">{rates.electricRate} ฿/หน่วย</span>
             &nbsp;•&nbsp;
-            ค่าน้ำ: <span className="text-indigo-400 font-semibold">{rates.waterRate} ฿/เดือน</span>
+            ค่าน้ำ: <span className="text-emerald-400 font-semibold">{rates.waterRate} ฿/เดือน</span>
           </p>
         </div>
 
@@ -424,11 +422,11 @@ export default function InvoicesPage() {
           {/* ── LEFT: Form ─────────────────────────────────────────────────────── */}
           <form
             onSubmit={handleSubmit}
-            className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-6 space-y-5 shadow-xl"
+            className="lg:col-span-3 bg-slate-900 border-2 border-slate-800 rounded-2xl p-6 space-y-5 shadow-[4px_4px_0_0_rgba(15,23,42,1)]"
           >
             {/* Room selector */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
                 เลือกห้องพัก <span className="text-red-400">*</span>
               </label>
               <select
@@ -439,7 +437,7 @@ export default function InvoicesPage() {
                   setSubmitError('');
                 }}
                 required
-                className="w-full bg-white shadow-sm border border-slate-200 border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
               >
                 <option value="">— กรุณาเลือกห้อง —</option>
                 {rooms.map((r) => (
@@ -452,7 +450,7 @@ export default function InvoicesPage() {
 
             {/* Period */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
                 ประจำเดือน <span className="text-red-400">*</span>
               </label>
               <input
@@ -460,13 +458,14 @@ export default function InvoicesPage() {
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
                 required
-                className="w-full bg-white shadow-sm border border-slate-200 border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
               />
             </div>
 
             {/* Tenant Status Section */}
             {selectedRoomId && isActiveTenant && (
-              <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-xl px-4 py-3 text-emerald-300 text-sm">
+              <div className="bg-[#1d1f27] border-2 border-slate-700 shadow-[4px_4px_0_0_#f7a501] rounded-xl px-4 py-3 text-slate-300 text-sm">
+                <span className="font-bold text-[#f7a501] mr-2">📌 ข้อความจากระบบ:</span>
                 ข้อมูลผู้เช่าปัจจุบัน: {selectedTenant?.firstname} {selectedTenant?.lastname} (ACTIVE)
               </div>
             )}
@@ -481,17 +480,17 @@ export default function InvoicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Previous meter (read-only) */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     มิเตอร์ครั้งก่อน (หน่วย)
                   </label>
-                  <div className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-xl px-4 py-2.5 cursor-not-allowed select-none">
+                  <div className="w-full bg-slate-800 border border-slate-700 text-slate-400 rounded-xl px-4 py-2.5 cursor-not-allowed select-none">
                     {selectedRoom.prevMeter.toLocaleString()}
                   </div>
                 </div>
 
                 {/* Current meter */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
                     มิเตอร์ปัจจุบัน (หน่วย) <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -502,7 +501,7 @@ export default function InvoicesPage() {
                     onChange={(e) => { setCurrMeter(e.target.value); setSubmitError(''); }}
                     placeholder={String(selectedRoom.prevMeter)}
                     required
-                    className="w-full bg-white shadow-sm border border-slate-200 border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-slate-600"
+                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition placeholder-slate-600"
                   />
                 </div>
               </div>
@@ -510,7 +509,7 @@ export default function InvoicesPage() {
 
             {/* Other bill */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
                 ค่าใช้จ่ายอื่น ๆ (บาท)
               </label>
               <input
@@ -520,7 +519,7 @@ export default function InvoicesPage() {
                 value={otherBill}
                 onChange={(e) => setOtherBill(e.target.value)}
                 placeholder="0"
-                className="w-full bg-white shadow-sm border border-slate-200 border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition placeholder-slate-600"
+                className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition placeholder-slate-600"
               />
             </div>
 
@@ -536,7 +535,7 @@ export default function InvoicesPage() {
               <button
                 type="submit"
                 disabled={submitting || !selectedRoomId || !currMeter || Boolean(selectedRoomId && !isActiveTenant)}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-900/40 disabled:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold border-2 border-blue-500 shadow-[4px_4px_0_0_#1d4aff] py-3 px-6 rounded-xl transition-all duration-200 disabled:bg-slate-800 disabled:text-slate-500 disabled:border-slate-700 disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <>
@@ -557,38 +556,38 @@ export default function InvoicesPage() {
 
           {/* ── RIGHT: Live calculation preview ────────────────────────────────── */}
           <div className="lg:col-span-2">
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl sticky top-6">
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-4">
+            <div className="bg-slate-900 border-2 border-slate-800 rounded-2xl p-6 shadow-[4px_4px_0_0_rgba(15,23,42,1)] sticky top-6">
+              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">
                 ตัวอย่างยอดชำระ
               </h3>
 
               {!selectedRoom || !calc ? (
-                <p className="text-slate-600 text-sm text-center py-8">
+                <p className="text-slate-500 text-sm text-center py-8">
                   เลือกห้องและกรอกมิเตอร์<br />เพื่อดูยอดรวม
                 </p>
               ) : (
                 <div className="space-y-3">
                   {/* Line items */}
                   {[
-                    { label: 'ค่าเช่าห้อง', value: selectedRoom.monthlyRent, color: 'text-slate-700' },
+                    { label: 'ค่าเช่าห้อง', value: selectedRoom.monthlyRent, color: 'text-slate-300' },
                     ...(proratedAmount > 0 
-                      ? [{ label: 'ส่วนลดเข้าพักระหว่างเดือน', value: -proratedAmount, color: 'text-emerald-700' }]
+                      ? [{ label: 'ส่วนลดเข้าพักระหว่างเดือน', value: -proratedAmount, color: 'text-emerald-400' }]
                       : []),
                     {
                       label: `ค่าไฟ (${calc.units} หน่วย × ${rates.electricRate} ฿)`,
                       value: calc.elec,
-                      color: 'text-amber-500',
+                      color: 'text-amber-400',
                     },
-                    { label: 'ค่าน้ำ (เหมาจ่าย)', value: calc.water, color: 'text-sky-500' },
+                    { label: 'ค่าน้ำ (เหมาจ่าย)', value: calc.water, color: 'text-teal-400' },
                     ...(calc.other > 0
-                      ? [{ label: 'ค่าใช้จ่ายอื่น ๆ', value: calc.other, color: 'text-slate-600' }]
+                      ? [{ label: 'ค่าใช้จ่ายอื่น ๆ', value: calc.other, color: 'text-slate-400' }]
                       : []),
                     ...(selectedRoom.lastStatus === 'UNPAID'
-                      ? [{ label: 'มีค้างชำระ (server คำนวณ)', value: 0, color: 'text-rose-500' }]
+                      ? [{ label: 'มีค้างชำระ (server คำนวณ)', value: 0, color: 'text-rose-400' }]
                       : []),
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between items-center text-sm">
-                      <span className="text-slate-500 leading-snug">{item.label}</span>
+                      <span className="text-slate-400 leading-snug">{item.label}</span>
                       <span className={`font-semibold tabular-nums ${item.color}`}>
                         {item.value === 0 && item.label.includes('ค้าง') ? '—' : `฿ ${thb(item.value)}`}
                       </span>
@@ -596,10 +595,10 @@ export default function InvoicesPage() {
                   ))}
 
                   {/* Divider */}
-                  <div className="border-t border-slate-200 pt-3 mt-1">
+                  <div className="border-t border-slate-700 pt-3 mt-1">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600 font-medium">รวมทั้งสิ้น</span>
-                      <span className="text-indigo-600 font-bold text-xl tabular-nums">
+                      <span className="text-slate-300 font-medium">รวมทั้งสิ้น</span>
+                      <span className="text-emerald-400 font-bold text-xl tabular-nums">
                         ฿ {thb(calc.total)}
                       </span>
                     </div>
@@ -610,7 +609,7 @@ export default function InvoicesPage() {
 
                   {/* Arrears warning badge */}
                   {selectedRoom.lastStatus === 'UNPAID' && (
-                    <div className="mt-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-xs text-rose-600 font-medium flex items-center gap-1.5">
+                    <div className="mt-2 bg-rose-950/50 border border-rose-800 rounded-lg px-3 py-2 text-xs text-rose-400 font-medium flex items-center gap-1.5">
                       <span className="text-sm">⚠️</span> ห้องนี้มียอดค้างจากเดือนก่อน
                     </div>
                   )}

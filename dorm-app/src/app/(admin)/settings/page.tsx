@@ -21,15 +21,15 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="flex items-center gap-4 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex items-center gap-4 bg-slate-900 rounded-2xl p-5 border-2 border-slate-800 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
       <div className={`w-12 h-12 flex items-center justify-center rounded-xl shrink-0 ${accent}`}>
         {icon}
       </div>
       <div>
-        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 mt-0.5">
+        <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold">{label}</p>
+        <p className="text-2xl font-bold text-white mt-0.5">
           {value.toLocaleString('th-TH')}
-          <span className="text-sm font-normal text-slate-500 ml-1">{unit}</span>
+          <span className="text-sm font-normal text-slate-400 ml-1">{unit}</span>
         </p>
       </div>
     </div>
@@ -66,48 +66,48 @@ function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, ren
   };
 
   return (
-    <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-sky-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-bl-full" />
+    <form onSubmit={handleSave} className="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-[4px_4px_0_0_rgba(15,23,42,1)] relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-950 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-bl-full" />
       
-      <div className="flex justify-between items-center border-b border-slate-100 pb-3 relative z-10">
-        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <div className="p-1.5 bg-indigo-50 text-indigo-500 rounded-lg">
+      <div className="flex justify-between items-center border-b border-slate-800 pb-3 relative z-10">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <div className="p-1.5 bg-emerald-950 text-emerald-400 rounded-lg">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1v1H9V7zm5 0h1v1h-1V7zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1z" />
             </svg>
           </div>
           ห้อง {room.roomNumber}
         </h3>
-        {success && <span className="text-emerald-600 text-xs font-medium px-2 py-1 bg-emerald-50 border border-emerald-100 rounded-full flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> สำเร็จ</span>}
+        {success && <span className="text-emerald-400 text-xs font-medium px-2 py-1 bg-emerald-950 border border-emerald-900 rounded-full flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> สำเร็จ</span>}
       </div>
-      {error && <p className="text-red-500 text-xs px-3 py-2 bg-red-50 border border-red-100 rounded-lg">{error}</p>}
+      {error && <p className="text-red-400 text-xs px-3 py-2 bg-red-950/50 border border-red-900 rounded-lg">{error}</p>}
       
       <div className="grid grid-cols-2 gap-4 relative z-10">
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1.5">ค่าเช่า (บาท/เดือน)</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">ค่าเช่า (บาท/เดือน)</label>
           <div className="relative group/input">
             <input type="number" min="0" step="0.01" value={rent} onChange={e => setRent(e.target.value)}
-                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium group-focus-within/input:text-sky-500 transition-colors">฿</span>
+                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1.5">ค่ามัดจำ (บาท)</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">ค่ามัดจำ (บาท)</label>
           <div className="relative group/input">
             <input type="number" min="0" step="0.01" value={deposit} onChange={e => setDeposit(e.target.value)}
-                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium group-focus-within/input:text-sky-500 transition-colors">฿</span>
+                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
           </div>
         </div>
       </div>
       
       <div className={`pt-2 mt-1 flex justify-end gap-3 transition-all duration-300 overflow-hidden ${hasChanges ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
         <button type="button" onClick={() => { setRent(String(room.monthlyRent || 0)); setDeposit(String(room.depositAmount || 0)); setError(''); }}
-                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 border-2 border-slate-700 shadow-[2px_2px_0_0_rgba(51,65,85,1)] hover:bg-slate-700 rounded-xl transition-colors">
           ยกเลิก
         </button>
         <button type="submit" disabled={!hasChanges || saving}
-                className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:from-sky-400 hover:to-indigo-400 disabled:opacity-50 shadow-md shadow-sky-500/30 transition-all disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]">
+                className="px-5 py-2 text-xs font-bold rounded-2xl bg-[#f7a501] text-black hover:bg-yellow-500 disabled:opacity-50 border-2 border-[#b77a00] shadow-[4px_4px_0_0_#78350f] disabled:border-slate-700 disabled:bg-slate-800 transition-all disabled:cursor-not-allowed flex items-center justify-center min-w-[80px] font-mono">
           {saving ? <div className="w-4 h-4 border-2 border-white/80 border-t-transparent rounded-full animate-spin" /> : 'บันทึก'}
         </button>
       </div>
@@ -223,31 +223,31 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm font-medium">กำลังโหลดการตั้งค่า…</p>
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-400 text-sm font-medium">กำลังโหลดการตั้งค่า…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full flex flex-col gap-8 text-slate-800">
+    <div className="w-full flex flex-col gap-8 text-slate-300">
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-16">
 
         {/* Page header */}
         <div className="mb-10 text-center sm:text-left">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-600 to-indigo-600">
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">
             ตั้งค่าระบบ
           </h1>
-          <p className="text-slate-500 mt-2 text-sm max-w-2xl">
+          <p className="text-slate-400 mt-2 text-sm max-w-2xl">
             ปรับแต่งอัตราค่าบริการและข้อมูลห้องพักที่มีผลกับบิลรอบใหม่ทั้งหมด
           </p>
         </div>
 
         {fetchError && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-red-600 text-sm flex items-start gap-3 shadow-sm">
+          <div className="mb-6 bg-red-950/50 border border-red-900 rounded-2xl px-5 py-4 text-red-400 text-sm flex items-start gap-3 shadow-[2px_2px_0_0_rgba(51,65,85,1)]">
             <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             <div>
               <p className="font-bold">โหลดข้อมูลล้มเหลว</p>
@@ -258,8 +258,8 @@ export default function SettingsPage() {
 
         {/* ── Utilities Section ────────────────────────────────────────── */}
         <div className="mb-14">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <span className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <span className="p-1.5 bg-teal-950 text-teal-400 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             </span>
             สาธารณูปโภค (Utilities)
@@ -274,57 +274,57 @@ export default function SettingsPage() {
                   label="ค่าไฟปัจจุบัน"
                   value={currentRates.electricRate}
                   unit="บาท / หน่วย"
-                  accent="bg-amber-100 border border-amber-200"
+                  accent="bg-amber-950 border border-amber-900"
                 />
                 <StatCard
-                  icon={<svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707" /><circle cx="12" cy="12" r="4" strokeWidth={2} /></svg>}
+                  icon={<svg className="w-6 h-6 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707" /><circle cx="12" cy="12" r="4" strokeWidth={2} /></svg>}
                   label="ค่าน้ำปัจจุบัน"
                   value={currentRates.waterRate}
                   unit="บาท / เดือน"
-                  accent="bg-blue-100 border border-blue-200"
+                  accent="bg-teal-950 border border-teal-900"
                 />
               </div>
             )}
 
             {/* Edit Form */}
-            <form onSubmit={handleSaveRates} className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow">
-              <h3 className="text-base font-bold text-slate-800 mb-6">แก้ไขอัตราค่าบริการ</h3>
+            <form onSubmit={handleSaveRates} className="lg:col-span-3 bg-slate-900 border-2 border-slate-800 rounded-3xl p-6 sm:p-8 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
+              <h3 className="text-base font-bold text-white mb-6">แก้ไขอัตราค่าบริการ</h3>
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    ค่าไฟฟ้าต่อหน่วย (THB / Unit) <span className="text-red-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-400 mb-2">
+                    ค่าไฟฟ้าต่อหน่วย (THB / Unit) <span className="text-red-400">*</span>
                   </label>
                   <div className="relative group/input">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 font-bold select-none">⚡</span>
                     <input type="number" min="0.01" step="0.01" value={elecInput} onChange={(e) => { setElecInput(e.target.value); setSaveError(''); setSaveSuccess(false); }} required placeholder="5.00"
-                           className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-12 pr-16 py-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none group-focus-within/input:text-sky-500 transition-colors">฿/หน่วย</span>
+                           className="w-full bg-slate-950 border-2 border-slate-700 text-white rounded-2xl pl-12 pr-16 py-3 focus:bg-slate-900 focus:outline-none focus:border-emerald-500 transition shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium select-none group-focus-within/input:text-emerald-500 transition-colors">฿/หน่วย</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    ค่าน้ำเหมาจ่ายต่อเดือน (THB / Month) <span className="text-red-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-400 mb-2">
+                    ค่าน้ำเหมาจ่ายต่อเดือน (THB / Month) <span className="text-red-400">*</span>
                   </label>
                   <div className="relative group/input">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-bold select-none">💧</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-teal-500 font-bold select-none">💧</span>
                     <input type="number" min="0" step="0.01" value={waterInput} onChange={(e) => { setWaterInput(e.target.value); setSaveError(''); setSaveSuccess(false); }} required placeholder="80.00"
-                           className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-12 pr-16 py-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none group-focus-within/input:text-sky-500 transition-colors">฿/เดือน</span>
+                           className="w-full bg-slate-950 border-2 border-slate-700 text-white rounded-2xl pl-12 pr-16 py-3 focus:bg-slate-900 focus:outline-none focus:border-emerald-500 transition shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium select-none group-focus-within/input:text-emerald-500 transition-colors">฿/เดือน</span>
                   </div>
                 </div>
               </div>
 
-              {saveError && <div className="mt-6 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm font-medium">{saveError}</div>}
-              {saveSuccess && <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-emerald-600 text-sm font-medium flex items-center gap-2"><svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>บันทึกอัตราค่าบริการสำเร็จแล้ว!</div>}
+              {saveError && <div className="mt-6 bg-red-950/50 border border-red-900 rounded-xl px-4 py-3 text-red-400 text-sm font-medium">{saveError}</div>}
+              {saveSuccess && <div className="mt-6 bg-emerald-950 border border-emerald-900 rounded-xl px-4 py-3 text-emerald-400 text-sm font-medium flex items-center gap-2"><svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>บันทึกอัตราค่าบริการสำเร็จแล้ว!</div>}
 
               <div className="mt-8 flex items-center gap-4">
                 {hasChanges && !saveSuccess && <p className="text-xs font-medium text-amber-500 flex-1 hidden sm:block">มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก</p>}
                 <div className="flex gap-3 w-full sm:w-auto ml-auto">
                   <button type="button" onClick={() => { if (currentRates) { setElecInput(String(currentRates.electricRate)); setWaterInput(String(currentRates.waterRate)); } setSaveError(''); setSaveSuccess(false); }} disabled={!hasChanges || saving}
-                          className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-500 font-semibold hover:bg-slate-50 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition">ยกเลิก</button>
+                          className="px-6 py-2.5 rounded-xl border-2 border-slate-700 bg-slate-900 text-slate-300 font-bold hover:bg-slate-800 shadow-[2px_2px_0_0_rgba(51,65,85,1)] disabled:opacity-40 disabled:cursor-not-allowed transition">ยกเลิก</button>
                   <button type="submit" disabled={saving || !hasChanges}
-                          className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 text-white font-bold transition-all shadow-md shadow-sky-600/30 disabled:shadow-none min-w-[150px]">
+                          className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#1d4aff] text-white border-2 border-[#1d4aff] font-bold transition-all shadow-[4px_4px_0_0_#1e3a8a] hover:bg-blue-600 disabled:opacity-50 disabled:shadow-none disabled:border-slate-700 disabled:bg-slate-800 min-w-[150px] font-mono">
                     {saving ? <div className="w-4 h-4 border-2 border-white/80 border-t-transparent rounded-full animate-spin" /> : 'บันทึกการตั้งค่า'}
                   </button>
                 </div>
@@ -336,8 +336,8 @@ export default function SettingsPage() {
         {/* ── Rooms Section ────────────────────────────────────────── */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <span className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="p-1.5 bg-emerald-950 text-emerald-400 rounded-lg">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1v1H9V7zm5 0h1v1h-1V7zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1z" /></svg>
               </span>
               จัดการค่าเช่าและมัดจำรายห้อง

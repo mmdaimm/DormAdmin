@@ -27,21 +27,21 @@ export default function Sidebar({ userRole, username }: { userRole: string, user
   return (
     <>
       {/* Mobile Top Nav */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white/60 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
-        <div className="text-xl font-bold text-slate-900 tracking-tight">DormAdmin</div>
-        <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 p-2">
+      <div className="md:hidden flex items-center justify-between p-4 bg-slate-950 border-b border-slate-800 sticky top-0 z-50">
+        <div className="text-xl font-bold text-slate-100 tracking-tight">DormAdmin</div>
+        <button onClick={() => setIsOpen(!isOpen)} className="text-slate-300 p-2">
           {isOpen ? '✕' : '☰'}
         </button>
       </div>
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white/60 backdrop-blur-xl border-r border-slate-200 
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 border-r border-slate-800 
         transform transition-transform duration-300 ease-in-out flex flex-col
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:sticky md:top-0 md:h-screen
       `}>
-        <div className="p-6 hidden md:block">
-          <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 tracking-tight">DormAdmin</div>
+        <div className="p-6 hidden md:block border-b border-slate-800 mb-2">
+          <div className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-400 tracking-tight font-mono">DormAdmin</div>
         </div>
         
         <div className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
@@ -55,8 +55,8 @@ export default function Sidebar({ userRole, username }: { userRole: string, user
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                   ${isActive 
-                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-200 shadow-sm font-semibold' 
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-[#f7a501] text-black font-bold shadow-[4px_4px_0_0_#b77a00] border-2 border-[#b77a00]' 
+                    : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 border-2 border-transparent'
                   }
                 `}
               >
@@ -67,14 +67,14 @@ export default function Sidebar({ userRole, username }: { userRole: string, user
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-          <div className="px-4 py-3 mb-3 rounded-xl bg-white shadow-sm border border-slate-200 flex items-center gap-3">
-             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+          <div className="px-4 py-3 mb-3 rounded-xl bg-[#1d1f27] border-2 border-slate-700 shadow-[4px_4px_0_0_#1d4aff] flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-blue-500 flex items-center justify-center text-white font-bold font-mono">
                {username.charAt(0).toUpperCase()}
              </div>
              <div className="flex-1 min-w-0">
-               <div className="text-sm font-bold text-slate-800 truncate">{username}</div>
-               <div className="text-xs text-slate-500 uppercase font-medium">{userRole}</div>
+               <div className="text-sm font-bold text-white truncate font-mono">{username}</div>
+               <div className="text-[10px] text-blue-400 uppercase font-bold font-mono">{userRole}</div>
              </div>
           </div>
           <div className="w-full [&>button]:w-full">
@@ -86,7 +86,7 @@ export default function Sidebar({ userRole, username }: { userRole: string, user
       {/* Mobile overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-slate-50/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

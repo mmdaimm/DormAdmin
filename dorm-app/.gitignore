@@ -43,7 +43,16 @@ next-env.d.ts
 # Mock Data
 /data/
 
-# Temporary Scripts
-test-services.ts
+# Temporary Scripts & Dumps
+test-services.*
 test.mjs
 update-mock.js
+*.log
+*.zip
+*.skill
+
+# IDE & Editor configs
+.vscode/
+.idea/
+Thumbs.db
+

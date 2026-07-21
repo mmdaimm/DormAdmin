@@ -137,21 +137,70 @@ export async function getLastInvoiceByRoom(roomId: string): Promise<Invoice | nu
   return roomInvoices.length > 0 ? roomInvoices[0] : null;
 }
 
+/**
+ * Dynamically computes effective carried-over arrears for a list of invoices
+ * by processing each room's timeline sequentially (period ASC).
+ * This ensures that if a payment is made on month N-1, month N's display & grandTotal
+ * immediately reflect the true updated remaining debt rather than stale static snapshot.
+ */
+export function computeEffectiveArrearsForInvoices(invoices: Invoice[]): Invoice[] {
+  const byRoom = new Map<string, Invoice[]>();
+  for (const inv of invoices) {
+    const list = byRoom.get(inv.roomId) || [];
+    list.push({ ...inv });
+    byRoom.set(inv.roomId, list);
+  }
+
+  const result: Invoice[] = [];
+
+  byRoom.forEach((roomInvoices) => {
+    roomInvoices.sort((a, b) => a.period.localeCompare(b.period));
+
+    let runningArrearsFromPrev = 0;
+
+    for (let i = 0; i < roomInvoices.length; i++) {
+      const inv = roomInvoices[i];
+
+      if (i === 0) {
+        runningArrearsFromPrev = inv.remainingArrears ?? 0;
+      } else {
+        inv.remainingArrears = runningArrearsFromPrev;
+      }
+
+      if (inv.status === 'PAID') {
+        runningArrearsFromPrev = 0;
+      } else {
+        const grandTotal = inv.totalAmount + runningArrearsFromPrev - (inv.creditApplied ?? 0);
+        const remainingUnpaid = grandTotal - (inv.paidAmount ?? 0);
+        runningArrearsFromPrev = Math.max(0, remainingUnpaid);
+      }
+
+      result.push(inv);
+    }
+  });
+
+  return result;
+}
+
 export async function getAllInvoices(): Promise<Invoice[]> {
   const rows = await getSheetValues(`${SHEET_INVOICES}!A2:P`);
-  return rows.filter((row) => row[0]).map(rowToInvoice);
+  const rawInvoices = rows.filter((row) => row[0]).map(rowToInvoice);
+  return computeEffectiveArrearsForInvoices(rawInvoices);
 }
 
 export function calculateArrears(lastInvoice: Invoice | null): number {
   if (!lastInvoice) return 0;
-  switch (lastInvoice.status) {
-    case 'UNPAID': 
-      // Grand Total ของบิลก่อนหน้า = total_amount + old_arrears - credit_applied
-      // (Spec 3.1) — ไม่มีข้อยกเว้นสำหรับ "รูปแบบเก่า" เหมือนทุกจุดอื่นในระบบ
-      return lastInvoice.totalAmount + (lastInvoice.remainingArrears ?? 0) - (lastInvoice.creditApplied ?? 0);
-    case 'PARTIAL': return lastInvoice.arrears;
-    case 'PAID': default: return 0;
+  if (lastInvoice.status === 'PAID') return 0;
+
+  // PARTIAL invoice: Col H (arrears) holds the remaining balance after partial payments
+  if (lastInvoice.status === 'PARTIAL') {
+    return Math.max(0, lastInvoice.arrears);
   }
+
+  // UNPAID invoice: calculate true remaining balance from original grand total
+  const grandTotal = lastInvoice.totalAmount + (lastInvoice.remainingArrears ?? 0) - (lastInvoice.creditApplied ?? 0);
+  const remaining = grandTotal - (lastInvoice.paidAmount ?? 0);
+  return Math.max(0, remaining);
 }
 
 export async function saveInvoice(invoiceData: Invoice): Promise<void> {
@@ -203,6 +252,12 @@ export async function updateInvoice(
   }
 
   const updatedInvoice = { ...existingInvoice, ...safeUpdates };
+
+  // If paidAmount or status was changed but arrears wasn't explicitly supplied, compute remaining debt for Column H
+  if (updates.arrears === undefined && (updates.paidAmount !== undefined || updates.status !== undefined)) {
+    const grandTotal = updatedInvoice.totalAmount + (updatedInvoice.remainingArrears ?? 0) - (updatedInvoice.creditApplied ?? 0);
+    updatedInvoice.arrears = updatedInvoice.status === 'PAID' ? 0 : Math.max(0, grandTotal - (updatedInvoice.paidAmount ?? 0));
+  }
 
   const newRow = [
     updatedInvoice.invoiceId,
@@ -278,19 +333,22 @@ export async function processPayment(
   if (currentStatus === 'PAID') throw new Error(`ใบแจ้งหนี้ "${invoiceId}" ถูกบันทึกว่าชำระแล้ว`);
 
   const totalAmount    = parseFloat(String(rows[rowIndex][8] ?? '')) || 0;
-  const arrearsOnBill  = parseFloat(String(rows[rowIndex][7] ?? '')) || 0;
+  // Use M (index 12) for arrears to calculate original grand total, bypassing any corrupted H
+  const originalArrears = parseFloat(String(rows[rowIndex][12] ?? '')) || 0;
   const creditApplied  = parseFloat(String(rows[rowIndex][15] ?? '')) || 0;
   const existingPaid   = parseFloat(String(rows[rowIndex][9] ?? '')) || 0;
   const existingUrl    = String(rows[rowIndex][11] ?? '');
 
-  const grandTotal = totalAmount + arrearsOnBill - creditApplied;
+  const grandTotal = totalAmount + originalArrears - creditApplied;
   const cumulativePaid = existingPaid + amountPaid;
-  const newRemainingArrears = Math.max(0, grandTotal - cumulativePaid);
   const newCredit = Math.max(0, cumulativePaid - grandTotal);
   const newStatus = cumulativePaid >= grandTotal ? 'PAID' : 'PARTIAL';
+  const newArrears = Math.max(0, grandTotal - cumulativePaid);
 
   const sheetRow = rowIndex + 2;
-  const updateValues = [[newRemainingArrears, totalAmount, cumulativePaid, newStatus, existingUrl]];
+  // Update Range H:L (5 elements: [newArrears, totalAmount, cumulativePaid, newStatus, existingUrl])
+  // Never touches Column M (old_arrears)
+  const updateValues = [[newArrears, totalAmount, cumulativePaid, newStatus, existingUrl]];
 
   await updateSheetValues(`${SHEET_INVOICES}!H${sheetRow}:L${sheetRow}`, updateValues);
 

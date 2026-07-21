@@ -12,9 +12,9 @@ const thb = (n: number) =>
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse shadow-sm">
-      <div className="h-3 w-24 bg-slate-200 rounded mb-3" />
-      <div className="h-7 w-32 bg-slate-200 rounded" />
+    <div className="bg-slate-900 border-2 border-slate-800 rounded-2xl p-5 animate-pulse shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
+      <div className="h-3 w-24 bg-slate-800 rounded mb-3" />
+      <div className="h-7 w-32 bg-slate-800 rounded" />
     </div>
   );
 }
@@ -61,9 +61,9 @@ export default function DashboardKPI() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="bg-white border border-emerald-200 shadow-sm rounded-2xl p-5">
-        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-2">อัตราการเข้าพัก</h3>
-        <p className="text-2xl font-bold text-emerald-700">
+      <div className="bg-slate-900 border-2 border-slate-700 shadow-[4px_4px_0_0_#1d4aff] rounded-xl p-5 transition-all duration-300 hover:shadow-[6px_6px_0_0_#1d4aff] hover:-translate-y-1 hover:border-blue-500">
+        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 font-mono">อัตราการเข้าพัก</h3>
+        <p className="text-3xl font-black text-blue-500 font-mono tracking-tight">
           {(occupancy.occupancyRate * 100).toFixed(0)}%
         </p>
         <p className="text-xs text-slate-500 mt-1">
@@ -71,16 +71,16 @@ export default function DashboardKPI() {
         </p>
       </div>
 
-      <div className="bg-white border border-indigo-200 shadow-sm rounded-2xl p-5">
-        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-2">
+      <div className="bg-slate-900 border-2 border-slate-700 shadow-[4px_4px_0_0_#22c55e] rounded-xl p-5 transition-all duration-300 hover:shadow-[6px_6px_0_0_#22c55e] hover:-translate-y-1 hover:border-green-500">
+        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 font-mono">
           รายได้เดือนนี้ (ตามงวดบิล)
         </h3>
-        <p className="text-2xl font-bold text-indigo-600">฿{thb(latestIncome)}</p>
+        <p className="text-3xl font-black text-green-500 font-mono tracking-tight">฿{thb(latestIncome)}</p>
         <p className="text-xs text-slate-500 mt-1">Accrual Basis — ไม่ใช่กระแสเงินสด</p>
       </div>
 
-      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 sm:col-span-2 lg:col-span-2">
-        <h3 className="text-slate-500 text-xs uppercase tracking-wider mb-3">
+      <div className="bg-slate-900 border-2 border-slate-700 shadow-[4px_4px_0_0_#f7a501] rounded-xl p-5 sm:col-span-2 lg:col-span-2 transition-all duration-300 hover:shadow-[6px_6px_0_0_#f7a501] hover:-translate-y-1 hover:border-orange-500">
+        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3 font-mono">
           แนวโน้มรายได้ 3 เดือนล่าสุด (ตามงวดบิล)
         </h3>
         <div className="flex items-end gap-3 h-16">
@@ -89,13 +89,13 @@ export default function DashboardKPI() {
             const heightPct = (point.income / max) * 100;
             return (
               <div key={point.period} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-slate-100 border border-slate-200 rounded-t relative" style={{ height: '48px' }}>
+                <div className="w-full bg-slate-950 border-2 border-slate-800 rounded-t relative overflow-hidden" style={{ height: '48px' }}>
                   <div
-                    className="absolute bottom-0 left-0 right-0 bg-indigo-500 rounded-t"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-orange-600 to-yellow-400"
                     style={{ height: `${heightPct}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-slate-500">{point.period}</span>
+                <span className="text-[10px] text-slate-500 font-mono font-bold">{point.period}</span>
               </div>
             );
           })}

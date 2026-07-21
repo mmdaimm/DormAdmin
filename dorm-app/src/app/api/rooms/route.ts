@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const token = request.cookies.get('auth_token')?.value;
     const session = await decrypt(token);
     
-    if (!session || (session.role !== 'admin' && session.role !== 'owner')) {
+    if (!session || session.role !== 'owner') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 

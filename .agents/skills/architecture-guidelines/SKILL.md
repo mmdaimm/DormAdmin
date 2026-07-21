@@ -37,11 +37,14 @@ RBAC is strictly enforced at the Edge level via `src/middleware.ts`.
 - Mass Assignment Prevention: When updating records (e.g., in `sheetService.ts`), explicitly whitelist the fields that can be updated (e.g., `UPDATABLE_INVOICE_FIELDS`) rather than spreading the entire payload `...updates`.
 
 ## 4. 🎨 UI/UX & Coding Conventions
-- **Styling:** Use standard Tailwind CSS. The app uses a dark theme: `bg-slate-950` for backgrounds, `bg-slate-900` for cards/panels, with text colors `text-slate-300`, `text-slate-400`.
+- **Styling:** Use standard Tailwind CSS. The app uses a **Dark Theme (PostHog DevTool Style)**:
+  - Backgrounds: `bg-slate-950`
+  - Cards/Panels: `bg-slate-900` with solid borders (`border border-slate-700` or `border-slate-800`).
+  - Text: `text-slate-200`, `text-slate-300` for secondary.
 - **Accent Colors:** 
-  - Positive/Money/Success: `text-emerald-400`
-  - Negative/Arrears/Danger: `text-rose-400`
-  - Primary Action/Highlight: `text-indigo-400`
+  - Primary Action/Highlight/Positive: Can use bright contrasting colors like White (`bg-white text-slate-900`), Emerald (`text-emerald-500`), or vibrant PostHog-style colors to stand out against the dark background.
+  - Negative/Arrears/Danger: `text-rose-500`
+  - Secondary Info: `text-slate-400`
 - **Currency Formatting:** ALWAYS format THB amounts in the UI using the `formatThB` pattern:
   ```tsx
   const formatThB = (num: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(num);

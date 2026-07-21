@@ -4,7 +4,7 @@ import { decrypt } from '@/lib/auth';
 
 const publicRoutes = ['/login'];
 const adminRestrictedRoutes = ['/settings', '/tenants', '/accounting'];
-const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants']; // Allows GET, blocks others
+const adminRestrictedApiRoutes = ['/api/settings', '/api/tenants', '/api/rooms']; // Allows GET, blocks others
 const adminStrictBlockedApiRoutes = ['/api/accounting']; // Blocks ALL methods
 const adminMethodRestrictions: Record<string, string[]> = {
   // admin ยังสร้างบิลได้ปกติ (POST) และดูบิลได้ (GET) — บล็อกเฉพาะ manual override (PUT)

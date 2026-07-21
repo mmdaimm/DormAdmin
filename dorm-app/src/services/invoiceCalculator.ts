@@ -70,13 +70,11 @@ export async function computeInvoiceValues(
   }
 
   const previousInvoices = roomInvoices
-    .filter((inv) => inv.period < period && inv.status !== ('CANCELLED' as any) && inv.status !== ('VOID' as any))
+    .filter((inv) => inv.period < period)
     .sort((a, b) => b.period.localeCompare(a.period));
   const lastInvoice = previousInvoices.length > 0 ? previousInvoices[0] : null;
 
-  const prevMeter = lastInvoice
-    ? (parseFloat(lastInvoice.currMeter as any ?? (lastInvoice as any).curr_meter ?? 0) || 0)
-    : 0;
+  const prevMeter = lastInvoice ? Number(lastInvoice.currMeter) || 0 : 0;
 
   if (currMeter < prevMeter) {
     throw new InvoiceComputeError(

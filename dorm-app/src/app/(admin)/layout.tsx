@@ -15,7 +15,7 @@ export default async function AdminLayout({
   const username = session?.username || 'User';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col md:flex-row">
       <Sidebar userRole={userRole} username={username} />
       <main className="flex-1 w-full md:max-w-[calc(100vw-16rem)] overflow-x-hidden p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
