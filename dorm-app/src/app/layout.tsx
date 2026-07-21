@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "ระบบคำนวณค่าเช่าหอพัก ค่าน้ำ ค่าไฟ และออกใบเสร็จ PDF",
 };
 
+import GlobalPickerHandler from "@/components/GlobalPickerHandler";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +31,10 @@ export default function RootLayout({
       lang="th"
       className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <GlobalPickerHandler />
+        {children}
+      </body>
     </html>
   );
 }
