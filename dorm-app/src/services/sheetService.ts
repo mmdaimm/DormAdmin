@@ -295,8 +295,12 @@ export async function logAuditAction(
   details: string,
   performedBy: string
 ): Promise<void> {
-  const row = [new Date().toISOString(), action, details, performedBy];
-  await appendSheetValues(`${SHEET_AUDIT_LOG}!A1`, [row]);
+  try {
+    const row = [new Date().toISOString(), action, details, performedBy];
+    await appendSheetValues(`${SHEET_AUDIT_LOG}!A1`, [row]);
+  } catch (error) {
+    console.warn(`[logAuditAction] Failed to log action "${action}":`, error);
+  }
 }
 
 // ─── Tenants ──────────────────────────────────────────────────────────────────

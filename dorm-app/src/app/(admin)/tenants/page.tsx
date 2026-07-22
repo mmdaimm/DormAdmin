@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import type { Tenant } from '@/types';
+import type { Tenant, Invoice } from '@/types';
 import { getActiveTenantsForRoom } from '@/lib/tenantUtils';
 import type { SettlementResult } from '@/services/settlementCalculator';
 
@@ -389,6 +389,59 @@ export default function TenantsPage() {
     setMoveOutErrorMsg('');
 
     try {
+      let uploadedPdfUrl = '';
+      try {
+        const currentMonthCharges = settlementPreview.proratedRent + settlementPreview.electricityBill + settlementPreview.waterBill + settlementPreview.damageFee;
+        const dummyInvoice: Invoice = {
+          invoiceId: `INV-${moveOutRoom.roomId}-${settlementPreview.period}`,
+          roomId: moveOutRoom.roomId,
+          period: settlementPreview.period,
+          prevMeter: settlementPreview.prevElectricMeter,
+          currMeter: settlementPreview.finalElectricMeter,
+          waterBill: settlementPreview.waterBill,
+          otherBill: settlementPreview.damageFee,
+          arrears: settlementPreview.arrears,
+          totalAmount: currentMonthCharges,
+          paidAmount: settlementPreview.additionalPayAmount === 0 ? settlementPreview.totalCharges : 0,
+          status: settlementPreview.additionalPayAmount === 0 ? 'PAID' : 'UNPAID',
+          remainingArrears: settlementPreview.arrears,
+          creditApplied: settlementPreview.creditBalance,
+          proratedAmount: settlementPreview.monthlyRent - settlementPreview.proratedRent,
+          isNewFormat: true,
+        };
+
+        const { pdf } = await import('@react-pdf/renderer');
+        const { SlipPdf } = await import('@/components/pdf/SlipPdf');
+
+        const blob = await pdf(
+          <SlipPdf invoice={dummyInvoice} roomNumber={moveOutRoom.roomNumber} type="SETTLEMENT" electricRate={5} />
+        ).toBlob();
+
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const fileName = `${moveOutRoom.roomNumber}${mm}${dd}${yyyy}_OUT.pdf`;
+
+        const formData = new FormData();
+        formData.append('pdf', blob, fileName);
+        formData.append('roomNumber', moveOutRoom.roomNumber);
+
+        const uploadRes = await fetch('/api/upload-bill', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.success) {
+            uploadedPdfUrl = uploadData.url;
+          }
+        }
+      } catch (pdfErr) {
+        console.warn('[handleMoveOutConfirm] PDF generation/upload failed, proceeding with move-out:', pdfErr);
+      }
+
       const res = await fetch('/api/tenants/move-out', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -399,6 +452,7 @@ export default function TenantsPage() {
           damageFee: parseFloat(moveOutForm.damageFee || '0'),
           damageNotes: moveOutForm.damageNotes,
           isFullMonthRent: moveOutForm.isFullMonthRent,
+          pdfUrl: uploadedPdfUrl,
           isPreview: false,
         }),
       });

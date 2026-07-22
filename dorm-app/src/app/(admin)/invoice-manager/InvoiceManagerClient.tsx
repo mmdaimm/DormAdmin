@@ -168,7 +168,7 @@ export default function InvoiceManagerClient({ userRole }: InvoiceManagerClientP
     }
 
     if (selectedMonth !== 'ALL') {
-      result = result.filter(inv => inv.period.endsWith(`-${selectedMonth}`));
+      result = result.filter(inv => inv.period.substring(5, 7) === selectedMonth);
     }
 
     result.sort((a, b) => {

@@ -254,8 +254,12 @@ const fmt = (n: number) =>
   n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const periodToThai = (period: string): string => {
-  const [year, month] = period.split('-');
-  return `${THAI_MONTHS[parseInt(month, 10) - 1]} ${parseInt(year, 10) + 543}`;
+  const parts = period.split('-');
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const isOut = parts.length > 2 && parts[2] === 'OUT';
+  const monthStr = THAI_MONTHS[month - 1] ?? '';
+  return `${monthStr} ${year + 543}${isOut ? ' (สรุปย้ายออก)' : ''}`;
 };
 
 const todayThai = (): string => {
@@ -268,15 +272,16 @@ const todayThai = (): string => {
 interface SlipPdfProps {
   invoice: Invoice;
   roomNumber: string;
-  /** Render as an invoice (bill to pay) or a receipt (proof of payment). */
-  type: 'INVOICE' | 'RECEIPT';
+  /** Render as an invoice (bill to pay), receipt (proof of payment), or settlement slip. */
+  type?: 'INVOICE' | 'RECEIPT' | 'SETTLEMENT';
   /** Electric rate used — displayed in the unit detail column. */
   electricRate?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdfProps) {
+export function SlipPdf({ invoice, roomNumber, type = 'INVOICE', electricRate = 5 }: SlipPdfProps) {
+  const isSettlement = type === 'SETTLEMENT' || invoice.period.endsWith('-OUT');
   const isReceipt = type === 'RECEIPT';
   const unitsUsed = invoice.currMeter - invoice.prevMeter;
   const electricBill = unitsUsed * electricRate;
@@ -298,8 +303,15 @@ export function SlipPdf({ invoice, roomNumber, type, electricRate = 5 }: SlipPdf
   const actualPaid = Number(invoice.paidAmount ?? (invoice as any).paid_amount ?? 0) || 0;
   const remainingBalance = Math.max(0, grandTotal - actualPaid);
 
-  const titleTH = isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้';
-  const titleEN = isReceipt ? 'Receipt' : 'Invoice';
+  let titleTH = 'ใบแจ้งหนี้';
+  let titleEN = 'Invoice';
+  if (isSettlement) {
+    titleTH = 'ใบสรุปปิดบัญชีย้ายออก';
+    titleEN = 'Move-Out Settlement Slip';
+  } else if (isReceipt) {
+    titleTH = 'ใบเสร็จรับเงิน';
+    titleEN = 'Receipt';
+  }
 
   return (
     <Document

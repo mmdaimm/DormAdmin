@@ -146,6 +146,7 @@ export interface MoveOutParams {
   damageFee?: number;
   damageNotes?: string;
   isFullMonthRent?: boolean;
+  pdfUrl?: string;
 }
 
 /**
@@ -223,6 +224,7 @@ export async function moveOutTenant(
     totalAmount: currentMonthCharges,
     paidAmount: additionalPayAmount === 0 ? settlement.totalCharges : 0,
     status: additionalPayAmount === 0 ? 'PAID' : 'UNPAID',
+    pdfUrl: params.pdfUrl,
     remainingArrears: arrears,
     creditApplied: settlement.creditBalance,
     proratedAmount: settlement.monthlyRent - settlement.proratedRent,

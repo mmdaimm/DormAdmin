@@ -25,8 +25,11 @@ export async function GET(request: NextRequest) {
       if (year === 'all') {
         if (!summaryMap[invYear]) summaryMap[invYear] = { income: 0, expense: 0, profit: 0 };
         summaryMap[invYear].income += (inv.paidAmount || 0);
-      } else if (inv.period.startsWith(year) && summaryMap[inv.period]) {
-        summaryMap[inv.period].income += (inv.paidAmount || 0);
+      } else if (inv.period.startsWith(year)) {
+        const normMonth = inv.period.substring(0, 7);
+        if (summaryMap[normMonth]) {
+          summaryMap[normMonth].income += (inv.paidAmount || 0);
+        }
       }
     }
 

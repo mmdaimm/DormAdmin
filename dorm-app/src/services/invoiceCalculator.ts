@@ -45,8 +45,8 @@ export async function computeInvoiceValues(
     );
   }
 
-  if (!/^\d{4}-\d{2}$/.test(period)) {
-    throw new InvoiceComputeError('Field "period" must match the format YYYY-MM.', 400);
+  if (!/^\d{4}-\d{2}(-OUT)?$/.test(period)) {
+    throw new InvoiceComputeError('Field "period" must match the format YYYY-MM or YYYY-MM-OUT.', 400);
   }
 
   const [rates, rooms, allInvoices] = await Promise.all([
