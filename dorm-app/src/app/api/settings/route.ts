@@ -28,7 +28,7 @@ export async function GET(): Promise<NextResponse> {
  * If rows are missing, it appends them.
  */
 export async function PUT(request: NextRequest): Promise<NextResponse> {
-  let body: { electricRate: number; waterRate: number };
+  let body: { electricRate?: number; waterRate?: number; minStayMonths?: number };
 
   try {
     body = await request.json();
@@ -39,19 +39,18 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { electricRate, waterRate } = body;
+  const { electricRate, waterRate, minStayMonths } = body;
 
   if (
-    typeof electricRate !== 'number' ||
-    typeof waterRate !== 'number' ||
-    electricRate <= 0 ||
-    waterRate < 0
+    (electricRate !== undefined && (typeof electricRate !== 'number' || electricRate <= 0)) ||
+    (waterRate !== undefined && (typeof waterRate !== 'number' || waterRate < 0)) ||
+    (minStayMonths !== undefined && (typeof minStayMonths !== 'number' || minStayMonths < 0))
   ) {
     return NextResponse.json(
       {
         success: false,
         error:
-          'electricRate must be a positive number; waterRate must be a non-negative number.',
+          'electricRate must be > 0; waterRate & minStayMonths must be non-negative numbers.',
       },
       { status: 422 }
     );
@@ -77,23 +76,39 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const appends: (string | number)[][] = [];
 
     // electric_rate
-    if (rowIndexMap['electric_rate']) {
-      updates.push({
-        range: `${SHEET_SETTINGS}!B${rowIndexMap['electric_rate']}`,
-        values: [[electricRate]],
-      });
-    } else {
-      appends.push(['electric_rate', electricRate, 'ค่าไฟต่อหน่วย (บาท/หน่วย)']);
+    if (electricRate !== undefined) {
+      if (rowIndexMap['electric_rate']) {
+        updates.push({
+          range: `${SHEET_SETTINGS}!B${rowIndexMap['electric_rate']}`,
+          values: [[electricRate]],
+        });
+      } else {
+        appends.push(['electric_rate', electricRate, 'ค่าไฟต่อหน่วย (บาท/หน่วย)']);
+      }
     }
 
     // water_rate
-    if (rowIndexMap['water_rate']) {
-      updates.push({
-        range: `${SHEET_SETTINGS}!B${rowIndexMap['water_rate']}`,
-        values: [[waterRate]],
-      });
-    } else {
-      appends.push(['water_rate', waterRate, 'ค่าน้ำคงที่ต่อเดือน (บาท)']);
+    if (waterRate !== undefined) {
+      if (rowIndexMap['water_rate']) {
+        updates.push({
+          range: `${SHEET_SETTINGS}!B${rowIndexMap['water_rate']}`,
+          values: [[waterRate]],
+        });
+      } else {
+        appends.push(['water_rate', waterRate, 'ค่าน้ำคงที่ต่อเดือน (บาท)']);
+      }
+    }
+
+    // min_stay_months
+    if (minStayMonths !== undefined) {
+      if (rowIndexMap['min_stay_months']) {
+        updates.push({
+          range: `${SHEET_SETTINGS}!B${rowIndexMap['min_stay_months']}`,
+          values: [[minStayMonths]],
+        });
+      } else {
+        appends.push(['min_stay_months', minStayMonths, 'ระยะเวลาสัญญาขั้นต่ำเริ่มต้น (เดือน)']);
+      }
     }
 
     // Execute batch update for existing rows
@@ -118,10 +133,12 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       });
     }
 
+    const updatedRates = await getRates();
+
     return NextResponse.json({
       success: true,
       message: 'Settings updated successfully.',
-      rates: { electricRate, waterRate },
+      rates: updatedRates,
     });
   } catch (error) {
     console.error('[PUT /api/settings]', error);

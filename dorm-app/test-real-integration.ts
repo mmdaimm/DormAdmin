@@ -123,6 +123,84 @@ async function runRealIntegrationTests() {
     console.log('  ✅ PASSED TEST 2\n');
   }
 
+  // 3. Test REAL minimum stay duration deposit forfeiture (Option A)
+  {
+    const { calculateFullMonthsStayed } = await import('./src/services/settlementCalculator');
+
+    console.log('[TEST 3] REAL Minimum Stay Deposit Forfeiture (Option A):');
+
+    // Case 3A: Entry 2026-03-15, MoveOut 2026-08-10 (4 full months stayed < minStay 5) => Deposit Forfeited
+    const resEarly = calculateMoveOutSettlement({
+      roomId: 'RM001',
+      roomNumber: '101',
+      entryDate: '2026-03-15',
+      moveOutDate: '2026-08-10',
+      minStayMonths: 5,
+      prevElectricMeter: 100,
+      finalElectricMeter: 150,
+      monthlyRent: 3000,
+      depositAmount: 5000,
+      creditBalance: 0,
+      arrears: 0,
+      electricRate: 5,
+      waterRate: 60,
+      isFullMonthRent: true,
+    });
+
+    console.log('  3A (Early move-out 4/5 months): monthsStayed =', resEarly.monthsStayed, 'isDepositForfeited =', resEarly.isDepositForfeited, 'effectiveDeposit =', resEarly.effectiveDeposit);
+    assert.strictEqual(resEarly.monthsStayed, 4);
+    assert.strictEqual(resEarly.isDepositForfeited, true);
+    assert.strictEqual(resEarly.effectiveDeposit, 0);
+
+    // Case 3B: Entry 2026-03-15, MoveOut 2026-08-15 (5 full months stayed >= minStay 5) => Deposit Refunded
+    const resFull = calculateMoveOutSettlement({
+      roomId: 'RM001',
+      roomNumber: '101',
+      entryDate: '2026-03-15',
+      moveOutDate: '2026-08-15',
+      minStayMonths: 5,
+      prevElectricMeter: 100,
+      finalElectricMeter: 150,
+      monthlyRent: 3000,
+      depositAmount: 5000,
+      creditBalance: 0,
+      arrears: 0,
+      electricRate: 5,
+      waterRate: 60,
+      isFullMonthRent: true,
+    });
+
+    console.log('  3B (Completed 5/5 months): monthsStayed =', resFull.monthsStayed, 'isDepositForfeited =', resFull.isDepositForfeited, 'effectiveDeposit =', resFull.effectiveDeposit);
+    assert.strictEqual(resFull.monthsStayed, 5);
+    assert.strictEqual(resFull.isDepositForfeited, false);
+    assert.strictEqual(resFull.effectiveDeposit, 5000);
+
+    // Case 3C: Early move-out with Manual Override (overrideForfeit = true) => Deposit Refunded
+    const resOverride = calculateMoveOutSettlement({
+      roomId: 'RM001',
+      roomNumber: '101',
+      entryDate: '2026-03-15',
+      moveOutDate: '2026-08-10',
+      minStayMonths: 5,
+      overrideForfeit: true,
+      prevElectricMeter: 100,
+      finalElectricMeter: 150,
+      monthlyRent: 3000,
+      depositAmount: 5000,
+      creditBalance: 0,
+      arrears: 0,
+      electricRate: 5,
+      waterRate: 60,
+      isFullMonthRent: true,
+    });
+
+    console.log('  3C (Early move-out with override): isDepositForfeited =', resOverride.isDepositForfeited, 'effectiveDeposit =', resOverride.effectiveDeposit);
+    assert.strictEqual(resOverride.isDepositForfeited, false);
+    assert.strictEqual(resOverride.effectiveDeposit, 5000);
+
+    console.log('  ✅ PASSED TEST 3\n');
+  }
+
   console.log('🎉 REAL CODEBASE INTEGRATION TEST PASSED 100%!');
 }
 

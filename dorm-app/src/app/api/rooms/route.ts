@@ -70,18 +70,18 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     }
 
     const body = await request.json();
-    const { roomId, monthlyRent, depositAmount } = body;
+    const { roomId, monthlyRent, depositAmount, minStayMonths } = body;
 
     if (!roomId || typeof monthlyRent !== 'number' || typeof depositAmount !== 'number') {
       return NextResponse.json({ success: false, error: 'Invalid parameters' }, { status: 400 });
     }
 
-    if (monthlyRent < 0 || depositAmount < 0) {
+    if (monthlyRent < 0 || depositAmount < 0 || (minStayMonths !== undefined && minStayMonths < 0)) {
       return NextResponse.json({ success: false, error: 'Amounts cannot be negative' }, { status: 400 });
     }
 
-    await updateRoomRentAndDeposit(roomId, monthlyRent, depositAmount);
-    await logAuditAction('UPDATE_ROOM', `Updated room ${roomId}: rent=${monthlyRent}, deposit=${depositAmount}`, session.username);
+    await updateRoomRentAndDeposit(roomId, monthlyRent, depositAmount, minStayMonths);
+    await logAuditAction('UPDATE_ROOM', `Updated room ${roomId}: rent=${monthlyRent}, deposit=${depositAmount}, minStay=${minStayMonths ?? 'default'}`, session.username);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -2,6 +2,7 @@ export interface SettlementInput {
   roomId: string;
   roomNumber: string;
   moveOutDate: string; // Format: YYYY-MM-DD
+  entryDate?: string; // Format: YYYY-MM-DD
   finalElectricMeter: number;
   prevElectricMeter: number;
   monthlyRent: number;
@@ -13,12 +14,15 @@ export interface SettlementInput {
   damageFee?: number;
   damageNotes?: string;
   isFullMonthRent?: boolean;
+  minStayMonths?: number;
+  overrideForfeit?: boolean;
 }
 
 export interface SettlementResult {
   roomId: string;
   roomNumber: string;
   moveOutDate: string;
+  entryDate?: string;
   period: string; // Format: YYYY-MM-OUT
   prevElectricMeter: number;
   finalElectricMeter: number;
@@ -33,6 +37,11 @@ export interface SettlementResult {
   totalCharges: number;
   depositAmount: number;
   creditBalance: number;
+  minStayMonths: number;
+  monthsStayed: number;
+  isDepositForfeited: boolean;
+  effectiveDeposit: number;
+  overrideForfeit?: boolean;
   totalCredits: number;
   netAmount: number;
   refundAmount: number;
@@ -47,14 +56,32 @@ export class SettlementError extends Error {
 }
 
 /**
+ * Option A: Calculate completed full calendar months between entry date and move-out date.
+ */
+export function calculateFullMonthsStayed(entryDateStr: string, moveOutDateStr: string): number {
+  if (!entryDateStr || !moveOutDateStr) return 0;
+  const entry = new Date(entryDateStr);
+  const moveOut = new Date(moveOutDateStr);
+  if (isNaN(entry.getTime()) || isNaN(moveOut.getTime())) return 0;
+
+  let months = (moveOut.getFullYear() - entry.getFullYear()) * 12 + (moveOut.getMonth() - entry.getMonth());
+  if (moveOut.getDate() < entry.getDate()) {
+    months--;
+  }
+  return Math.max(0, months);
+}
+
+/**
  * Pure calculation function for final move-out settlement.
  * Computes final utilities, prorated rent, arrears vs deposit & credit.
+ * Incorporates minimum stay duration deposit forfeiture check (Option A).
  */
 export function calculateMoveOutSettlement(input: SettlementInput): SettlementResult {
   const {
     roomId,
     roomNumber,
     moveOutDate,
+    entryDate = '',
     finalElectricMeter,
     prevElectricMeter,
     monthlyRent,
@@ -66,6 +93,8 @@ export function calculateMoveOutSettlement(input: SettlementInput): SettlementRe
     damageFee = 0,
     damageNotes = '',
     isFullMonthRent = false,
+    minStayMonths = 0,
+    overrideForfeit = false,
   } = input;
 
   if (!roomId || !moveOutDate) {
@@ -109,9 +138,14 @@ export function calculateMoveOutSettlement(input: SettlementInput): SettlementRe
   const cleanDeposit = Math.max(0, depositAmount);
   const cleanCredit = Math.max(0, creditBalance);
 
+  // Minimum stay calculation
+  const monthsStayed = entryDate ? calculateFullMonthsStayed(entryDate, moveOutDate) : 0;
+  const isDepositForfeited = minStayMonths > 0 && monthsStayed < minStayMonths && !overrideForfeit;
+  const effectiveDeposit = isDepositForfeited ? 0 : cleanDeposit;
+
   // Totals
   const totalCharges = proratedRent + electricityBill + waterBill + cleanArrears + cleanDamageFee;
-  const totalCredits = cleanDeposit + cleanCredit;
+  const totalCredits = effectiveDeposit + cleanCredit;
   const netAmount = totalCharges - totalCredits;
 
   const refundAmount = netAmount < 0 ? Math.abs(netAmount) : 0;
@@ -124,6 +158,7 @@ export function calculateMoveOutSettlement(input: SettlementInput): SettlementRe
     roomId,
     roomNumber,
     moveOutDate,
+    entryDate,
     period,
     prevElectricMeter,
     finalElectricMeter,
@@ -138,6 +173,11 @@ export function calculateMoveOutSettlement(input: SettlementInput): SettlementRe
     totalCharges,
     depositAmount: cleanDeposit,
     creditBalance: cleanCredit,
+    minStayMonths,
+    monthsStayed,
+    isDepositForfeited,
+    effectiveDeposit,
+    overrideForfeit,
     totalCredits,
     netAmount,
     refundAmount,

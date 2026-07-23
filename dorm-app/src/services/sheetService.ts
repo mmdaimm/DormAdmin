@@ -17,19 +17,21 @@ const SHEET_AUDIT_LOG = 'AuditLog';
 export interface Rates {
   electricRate: number;
   waterRate: number;
+  minStayMonths: number;
 }
 
 export async function getRates(): Promise<Rates> {
   const rates: Rates = {
     electricRate: ELECTRIC_RATE_PER_UNIT,
     waterRate: WATER_BILL_FIXED,
+    minStayMonths: 5,
   };
 
   try {
     const rows = await getSheetValues(`${SHEET_SETTINGS}!A2:C`);
 
     for (const row of rows) {
-      const key = (row[0] as string | undefined)?.trim() as SettingRate['key'];
+      const key = (row[0] as string | undefined)?.trim() as SettingRate['key'] | 'min_stay_months';
       const rawValue = row[1] as string | undefined;
       const parsed = rawValue !== undefined ? parseFloat(rawValue) : NaN;
 
@@ -37,6 +39,7 @@ export async function getRates(): Promise<Rates> {
 
       if (key === 'electric_rate') rates.electricRate = parsed;
       else if (key === 'water_rate') rates.waterRate = parsed;
+      else if (key === 'min_stay_months') rates.minStayMonths = Math.max(0, Math.floor(parsed));
     }
   } catch (error) {
     console.warn('[sheetService.getRates] Failed to fetch settings — using defaults.', error);
@@ -48,7 +51,7 @@ export async function getRates(): Promise<Rates> {
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
 export async function getRooms(): Promise<Room[]> {
-  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:G`);
+  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:H`);
 
   return rows
     .filter((row) => row[0])
@@ -60,6 +63,7 @@ export async function getRooms(): Promise<Room[]> {
       creditBalance: Math.max(0, parseFloat(row[4] as string) || 0),
       depositAmount: parseFloat(row[5] as string) || 0,
       primaryTenantId: row[6] ? String(row[6]).trim() : undefined,
+      minStayMonths: row[7] !== undefined && row[7] !== '' ? Math.max(0, parseInt(String(row[7]), 10) || 0) : undefined,
     }));
 }
 
@@ -80,11 +84,16 @@ export async function setPrimaryTenant(roomId: string, tenantId: string | undefi
 }
 
 /**
- * Updates the monthly rent and deposit amount for a specific room.
- * Modifies columns C through F to ensure both values are updated.
+ * Updates the monthly rent, deposit amount, and min stay months for a specific room.
+ * Modifies columns C through H as needed.
  */
-export async function updateRoomRentAndDeposit(roomId: string, monthlyRent: number, depositAmount: number): Promise<void> {
-  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:F`);
+export async function updateRoomRentAndDeposit(
+  roomId: string,
+  monthlyRent: number,
+  depositAmount: number,
+  minStayMonths?: number
+): Promise<void> {
+  const rows = await getSheetValues(`${SHEET_ROOMS}!A2:H`);
   const rowIndex = rows.findIndex((r) => String(r[0] ?? '').trim() === roomId);
   if (rowIndex === -1) {
     throw new Error(`Room with roomId "${roomId}" not found.`);
@@ -92,15 +101,17 @@ export async function updateRoomRentAndDeposit(roomId: string, monthlyRent: numb
   const sheetRow = rowIndex + 2;
   const row = rows[rowIndex];
   
-  // Column C (rent), D (lineToken), E (creditBalance), F (depositAmount)
+  // Column C (rent), D (lineToken), E (creditBalance), F (depositAmount), G (primaryTenantId), H (minStayMonths)
   const updateValues = [[
     monthlyRent,
     row[3] ?? '',
     row[4] ?? 0,
-    depositAmount
+    depositAmount,
+    row[6] ?? '',
+    minStayMonths !== undefined ? minStayMonths : (row[7] ?? '')
   ]];
   
-  await updateSheetValues(`${SHEET_ROOMS}!C${sheetRow}:F${sheetRow}`, updateValues);
+  await updateSheetValues(`${SHEET_ROOMS}!C${sheetRow}:H${sheetRow}`, updateValues);
 }
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────

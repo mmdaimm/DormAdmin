@@ -54,7 +54,7 @@ const currentPeriod = (): string => {
 export default function InvoicesPage() {
   // ── Server data ──────────────────────────────────────────────────────────────
   const [rooms, setRooms] = useState<RoomWithMeta[]>([]);
-  const [rates, setRates] = useState<Rates>({ electricRate: 5, waterRate: 80 });
+  const [rates, setRates] = useState<Rates>({ electricRate: 5, waterRate: 80, minStayMonths: 5 });
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState('');

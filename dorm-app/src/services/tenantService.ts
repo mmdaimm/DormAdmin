@@ -147,13 +147,14 @@ export interface MoveOutParams {
   damageNotes?: string;
   isFullMonthRent?: boolean;
   pdfUrl?: string;
+  overrideForfeit?: boolean;
 }
 
 /**
  * Previews the Move-Out settlement calculations without mutating state.
  */
 export async function previewMoveOutSettlement(params: MoveOutParams): Promise<SettlementResult> {
-  const { roomId, moveOutDate, finalElectricMeter, damageFee = 0, damageNotes = '', isFullMonthRent = false } = params;
+  const { roomId, moveOutDate, finalElectricMeter, damageFee = 0, damageNotes = '', isFullMonthRent = false, overrideForfeit = false } = params;
 
   const [rooms, rates, lastInvoice, allTenants] = await Promise.all([
     getRooms(),
@@ -170,13 +171,17 @@ export async function previewMoveOutSettlement(params: MoveOutParams): Promise<S
     throw new Error(`ห้อง ${room.roomNumber} ไม่มีผู้เช่าอยู่ปัจจุบัน`);
   }
 
+  const primaryTenant = activeTenants.find((t) => t.tenantId === room.primaryTenantId) || activeTenants[0];
+
   const prevElectricMeter = lastInvoice ? lastInvoice.currMeter : 0;
   const arrears = calculateArrears(lastInvoice);
+  const minStayMonths = room.minStayMonths !== undefined ? room.minStayMonths : (rates.minStayMonths ?? 5);
 
   return calculateMoveOutSettlement({
     roomId: room.roomId,
     roomNumber: room.roomNumber,
     moveOutDate,
+    entryDate: primaryTenant?.entryDate,
     finalElectricMeter,
     prevElectricMeter,
     monthlyRent: room.monthlyRent,
@@ -188,6 +193,8 @@ export async function previewMoveOutSettlement(params: MoveOutParams): Promise<S
     damageFee,
     damageNotes,
     isFullMonthRent,
+    minStayMonths,
+    overrideForfeit,
   });
 }
 

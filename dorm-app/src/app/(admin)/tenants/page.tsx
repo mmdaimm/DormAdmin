@@ -113,6 +113,7 @@ export default function TenantsPage() {
     damageFee: '0',
     damageNotes: '',
     isFullMonthRent: false,
+    overrideForfeit: false,
   });
   const [settlementPreview, setSettlementPreview] = useState<SettlementResult | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -214,6 +215,7 @@ export default function TenantsPage() {
       damageFee: '0',
       damageNotes: '',
       isFullMonthRent: false,
+      overrideForfeit: false,
     });
     setSettlementPreview(null);
     setPreviewError('');
@@ -367,6 +369,7 @@ export default function TenantsPage() {
           damageFee: parseFloat(moveOutForm.damageFee || '0'),
           damageNotes: moveOutForm.damageNotes,
           isFullMonthRent: moveOutForm.isFullMonthRent,
+          overrideForfeit: moveOutForm.overrideForfeit,
           isPreview: true,
         }),
       });
@@ -452,6 +455,7 @@ export default function TenantsPage() {
           damageFee: parseFloat(moveOutForm.damageFee || '0'),
           damageNotes: moveOutForm.damageNotes,
           isFullMonthRent: moveOutForm.isFullMonthRent,
+          overrideForfeit: moveOutForm.overrideForfeit,
           pdfUrl: uploadedPdfUrl,
           isPreview: false,
         }),
@@ -829,6 +833,18 @@ export default function TenantsPage() {
                 </Field>
               </div>
 
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 text-xs font-semibold text-amber-400 cursor-pointer select-none bg-amber-950/30 border border-amber-900/50 p-2.5 rounded-xl hover:bg-amber-950/50 transition">
+                  <input
+                    type="checkbox"
+                    checked={moveOutForm.overrideForfeit}
+                    onChange={(e) => setMoveOutForm({ ...moveOutForm, overrideForfeit: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                  />
+                  <span>อนุมัติคืนเงินมัดจำกรณีพิเศษ (ข้ามการริบเงินมัดจำ)</span>
+                </label>
+              </div>
+
               <button
                 type="button"
                 onClick={handleMoveOutPreview}
@@ -843,7 +859,16 @@ export default function TenantsPage() {
               {/* Settlement Preview Summary Card */}
               {settlementPreview && (
                 <div className="bg-slate-950 border-2 border-slate-800 rounded-xl p-4 space-y-3">
-                  <h3 className="font-bold text-emerald-400 text-sm border-b border-slate-800 pb-2">📋 สรุปรายการปิดบัญชีย้ายออก</h3>
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h3 className="font-bold text-emerald-400 text-sm">📋 สรุปรายการปิดบัญชีย้ายออก</h3>
+                    {settlementPreview.minStayMonths > 0 && (
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${settlementPreview.isDepositForfeited ? 'bg-rose-950 border-rose-800 text-rose-400' : 'bg-emerald-950 border-emerald-800 text-emerald-400'}`}>
+                        {settlementPreview.isDepositForfeited
+                          ? `🔴 อยู่ไม่ครบสัญญา (${settlementPreview.monthsStayed}/${settlementPreview.minStayMonths} เดือน) ริบมัดจำ`
+                          : `🟢 อยู่ครบสัญญา (${settlementPreview.monthsStayed}/${settlementPreview.minStayMonths} เดือน) คืนมัดจำ`}
+                      </span>
+                    )}
+                  </div>
 
                   <div className="text-xs space-y-1.5 text-slate-300 font-mono">
                     <div className="flex justify-between">
@@ -875,9 +900,18 @@ export default function TenantsPage() {
                       <span>฿{thb(settlementPreview.totalCharges)}</span>
                     </div>
 
-                    <div className="border-t border-slate-800 pt-1.5 flex justify-between text-emerald-400">
-                      <span>เงินประกันมัดจำ:</span>
-                      <span>-฿{thb(settlementPreview.depositAmount)}</span>
+                    <div className="border-t border-slate-800 pt-1.5 flex justify-between">
+                      {settlementPreview.isDepositForfeited ? (
+                        <>
+                          <span className="text-rose-400 font-sans">เงินประกันมัดจำ (ริบเนื่องจากอยู่ไม่ครบสัญญา):</span>
+                          <span className="text-rose-400">฿0.00</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-emerald-400 font-sans">เงินประกันมัดจำ (หักคืนผู้เช่า):</span>
+                          <span className="text-emerald-400">-฿{thb(settlementPreview.effectiveDeposit)}</span>
+                        </>
+                      )}
                     </div>
                     {settlementPreview.creditBalance > 0 && (
                       <div className="flex justify-between text-emerald-400">

@@ -36,14 +36,18 @@ function StatCard({
   );
 }
 
-function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, rent: number, dep: number) => Promise<void> }) {
+function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, rent: number, dep: number, minStay: number) => Promise<void> }) {
   const [rent, setRent] = useState(String(room.monthlyRent || 0));
   const [deposit, setDeposit] = useState(String(room.depositAmount || 0));
+  const [minStay, setMinStay] = useState(String(room.minStayMonths ?? 5));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const hasChanges = parseFloat(rent) !== (room.monthlyRent || 0) || parseFloat(deposit) !== (room.depositAmount || 0);
+  const hasChanges =
+    parseFloat(rent) !== (room.monthlyRent || 0) ||
+    parseFloat(deposit) !== (room.depositAmount || 0) ||
+    parseInt(minStay, 10) !== (room.minStayMonths ?? 5);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +55,13 @@ function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, ren
     setSuccess(false);
     const r = parseFloat(rent);
     const d = parseFloat(deposit);
+    const ms = parseInt(minStay, 10);
     if (isNaN(r) || r < 0) return setError('ค่าเช่าต้องไม่ติดลบ');
     if (isNaN(d) || d < 0) return setError('ค่ามัดจำต้องไม่ติดลบ');
+    if (isNaN(ms) || ms < 0) return setError('สัญญาขั้นต่ำต้องไม่ติดลบ');
     setSaving(true);
     try {
-      await onSave(room.roomId, r, d);
+      await onSave(room.roomId, r, d, ms);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
@@ -73,7 +79,7 @@ function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, ren
         <h3 className="text-lg font-bold text-white flex items-center gap-2">
           <div className="p-1.5 bg-emerald-950 text-emerald-400 rounded-lg">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1v1H9V7zm5 0h1v1h-1V7zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1v1H9V7zm5 0h1v1H9v-1zm5 0h1v1H9v-1zm-5 4h1v1H9v-1zm5 0h1v1H9v-1zm-5 4h1v1H9v-1zm5 0h1v1H9v-1z" />
             </svg>
           </div>
           ห้อง {room.roomNumber}
@@ -82,27 +88,35 @@ function RoomSettingCard({ room, onSave }: { room: Room, onSave: (r: string, ren
       </div>
       {error && <p className="text-red-400 text-xs px-3 py-2 bg-red-950/50 border border-red-900 rounded-lg">{error}</p>}
       
-      <div className="grid grid-cols-2 gap-4 relative z-10">
+      <div className="grid grid-cols-3 gap-3 relative z-10">
         <div>
-          <label className="block text-xs font-semibold text-slate-400 mb-1.5">ค่าเช่า (บาท/เดือน)</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">ค่าเช่า (บาท)</label>
           <div className="relative group/input">
             <input type="number" min="0" step="0.01" value={rent} onChange={e => setRent(e.target.value)}
-                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
+                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-2.5 pr-6 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
           </div>
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-400 mb-1.5">ค่ามัดจำ (บาท)</label>
           <div className="relative group/input">
             <input type="number" min="0" step="0.01" value={deposit} onChange={e => setDeposit(e.target.value)}
-                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
+                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-2.5 pr-6 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-medium group-focus-within/input:text-emerald-500 transition-colors">฿</span>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">สัญญา (เดือน)</label>
+          <div className="relative group/input">
+            <input type="number" min="0" step="1" value={minStay} onChange={e => setMinStay(e.target.value)}
+                   className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl pl-2.5 pr-7 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 outline-none transition-all shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] font-medium group-focus-within/input:text-emerald-500 transition-colors">เดือน</span>
           </div>
         </div>
       </div>
       
       <div className={`pt-2 mt-1 flex justify-end gap-3 transition-all duration-300 overflow-hidden ${hasChanges ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <button type="button" onClick={() => { setRent(String(room.monthlyRent || 0)); setDeposit(String(room.depositAmount || 0)); setError(''); }}
+        <button type="button" onClick={() => { setRent(String(room.monthlyRent || 0)); setDeposit(String(room.depositAmount || 0)); setMinStay(String(room.minStayMonths ?? 5)); setError(''); }}
                 className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 border-2 border-slate-700 shadow-[2px_2px_0_0_rgba(51,65,85,1)] hover:bg-slate-700 rounded-xl transition-colors">
           ยกเลิก
         </button>
@@ -125,6 +139,7 @@ export default function SettingsPage() {
 
   const [elecInput, setElecInput] = useState('');
   const [waterInput, setWaterInput] = useState('');
+  const [minStayInput, setMinStayInput] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -145,6 +160,7 @@ export default function SettingsPage() {
         setCurrentRates(r);
         setElecInput(String(r.electricRate));
         setWaterInput(String(r.waterRate));
+        setMinStayInput(String(r.minStayMonths ?? 5));
 
         if (roomsRes.ok) {
           const rData = await roomsRes.json();
@@ -172,6 +188,7 @@ export default function SettingsPage() {
 
     const elec = parseFloat(elecInput);
     const water = parseFloat(waterInput);
+    const minStay = parseInt(minStayInput, 10);
 
     if (isNaN(elec) || elec <= 0) {
       setSaveError('ค่าไฟต้องเป็นตัวเลขที่มากกว่าศูนย์');
@@ -181,13 +198,17 @@ export default function SettingsPage() {
       setSaveError('ค่าน้ำต้องเป็นตัวเลขที่ไม่ติดลบ');
       return;
     }
+    if (isNaN(minStay) || minStay < 0) {
+      setSaveError('ระยะเวลาสัญญาขั้นต่ำต้องไม่ติดลบ');
+      return;
+    }
 
     setSaving(true);
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ electricRate: elec, waterRate: water }),
+        body: JSON.stringify({ electricRate: elec, waterRate: water, minStayMonths: minStay }),
       });
       if (!res.ok && res.status !== 422) {
         throw new Error(`เซิฟเวอร์ไม่ตอบสนอง (HTTP ${res.status}: ${res.statusText || 'Server Error'})`);
@@ -195,7 +216,7 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
-      setCurrentRates({ electricRate: elec, waterRate: water });
+      setCurrentRates(data.rates);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err: unknown) {
@@ -205,21 +226,22 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveRoom = async (roomId: string, rent: number, deposit: number) => {
+  const handleSaveRoom = async (roomId: string, rent: number, deposit: number, minStay: number) => {
     const res = await fetch('/api/rooms', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, monthlyRent: rent, depositAmount: deposit })
+      body: JSON.stringify({ roomId, monthlyRent: rent, depositAmount: deposit, minStayMonths: minStay })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
-    setRooms(prev => prev.map(r => r.roomId === roomId ? { ...r, monthlyRent: rent, depositAmount: deposit } : r));
+    setRooms(prev => prev.map(r => r.roomId === roomId ? { ...r, monthlyRent: rent, depositAmount: deposit, minStayMonths: minStay } : r));
   };
 
   const hasChanges =
     currentRates !== null &&
     (parseFloat(elecInput) !== currentRates.electricRate ||
-      parseFloat(waterInput) !== currentRates.waterRate);
+      parseFloat(waterInput) !== currentRates.waterRate ||
+      parseInt(minStayInput, 10) !== (currentRates.minStayMonths ?? 5));
 
   if (loading) {
     return (
@@ -283,12 +305,19 @@ export default function SettingsPage() {
                   unit="บาท / เดือน"
                   accent="bg-teal-950 border border-teal-900"
                 />
+                <StatCard
+                  icon={<svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                  label="สัญญาขั้นต่ำเริ่มต้น"
+                  value={currentRates.minStayMonths ?? 5}
+                  unit="เดือน"
+                  accent="bg-blue-950 border border-blue-900"
+                />
               </div>
             )}
 
             {/* Edit Form */}
             <form onSubmit={handleSaveRates} className="lg:col-span-3 bg-slate-900 border-2 border-slate-800 rounded-3xl p-6 sm:p-8 shadow-[4px_4px_0_0_rgba(15,23,42,1)]">
-              <h3 className="text-base font-bold text-white mb-6">แก้ไขอัตราค่าบริการ</h3>
+              <h3 className="text-base font-bold text-white mb-6">แก้ไขอัตราค่าบริการและสัญญาขั้นต่ำ</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-400 mb-2">
@@ -311,6 +340,18 @@ export default function SettingsPage() {
                     <input type="number" min="0" step="0.01" value={waterInput} onChange={(e) => { setWaterInput(e.target.value); setSaveError(''); setSaveSuccess(false); }} required placeholder="80.00"
                            className="w-full bg-slate-950 border-2 border-slate-700 text-white rounded-2xl pl-12 pr-16 py-3 focus:bg-slate-900 focus:outline-none focus:border-emerald-500 transition shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium select-none group-focus-within/input:text-emerald-500 transition-colors">฿/เดือน</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-400 mb-2">
+                    ระยะเวลาสัญญาขั้นต่ำเริ่มต้น (Months) <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative group/input">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-bold select-none">📅</span>
+                    <input type="number" min="0" step="1" value={minStayInput} onChange={(e) => { setMinStayInput(e.target.value); setSaveError(''); setSaveSuccess(false); }} required placeholder="5"
+                           className="w-full bg-slate-950 border-2 border-slate-700 text-white rounded-2xl pl-12 pr-16 py-3 focus:bg-slate-900 focus:outline-none focus:border-emerald-500 transition shadow-[2px_2px_0_0_rgba(51,65,85,1)]" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium select-none group-focus-within/input:text-emerald-500 transition-colors">เดือน</span>
                   </div>
                 </div>
               </div>
